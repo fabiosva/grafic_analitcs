@@ -2,33 +2,32 @@ name: Coletor Diario BTC
 
 on:
   schedule:
-      - cron: "0 12 * * *"
-        workflow_dispatch: {}
+    - cron: "0 12 * * *"
+  workflow_dispatch: {}
 
-        jobs:
-          coletar:
-              runs-on: ubuntu-latest
-                  steps:
-                        - uses: actions/checkout@v4
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-                              - uses: actions/setup-python@v5
-                                      with:
-                                                python-version: "3.11"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-                                                      - name: Instalar dependencias
-                                                              run: pip install -r collector/requirements.txt
+      - name: Instalar dependencias
+        run: pip install -r collector/requirements.txt
 
-                                                                    - name: Rodar coletor
-                                                                            env:
-                                                                                      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-                                                                                                SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-                                                                                                        run: python collector/collector.py
-                                                                                                        
-                                                                                                              - name: Commit cache local (fallback)
-                                                                                                                      run: |
-                                                                                                                                git config user.name "bot-coletor"
-                                                                                                                                          git config user.email "bot@local"
-                                                                                                                                                    git add collector/data/latest.json || true
-                                                                                                                                                              git diff --staged --quiet || git commit -m "Atualiza dados $(date -u +%F)"
-                                                                                                                                                                        git push || true
-                                                                                                                                                                        
+      - name: Rodar coletor
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python collector/collector.py
+
+      - name: Commit cache local (fallback)
+        run: |
+          git config user.name "bot-coletor"
+          git config user.email "bot@local"
+          git add collector/data/latest.json || true
+          git diff --staged --quiet || git commit -m "Atualiza dados $(date -u +%F)"
+          git push || true

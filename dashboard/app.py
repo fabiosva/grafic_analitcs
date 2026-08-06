@@ -17,56 +17,56 @@ SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", os.environ.get("SUPABASE_KEY", "")
 
 @st.cache_data(ttl=3600)
 def carregar_historico():
-      if not SUPABASE_URL or not SUPABASE_KEY:
-                return pd.DataFrame()
-            headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return pd.DataFrame()
+    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
     url = f"{SUPABASE_URL}/rest/v1/bottom_indicators?select=*&order=data.asc"
     r = requests.get(url, headers=headers, timeout=15)
     if r.status_code != 200:
-              return pd.DataFrame()
-          return pd.DataFrame(r.json())
+        return pd.DataFrame()
+    return pd.DataFrame(r.json())
 
 
 def cor_score(score):
-      if score >= 70:
-                return "#00c853"
-elif score >= 40:
+    if score >= 70:
+        return "#00c853"
+    elif score >= 40:
         return "#ffd600"
-else:
+    else:
         return "#ff5252"
 
 
 def velocimetro(score, classificacao):
-      fig = go.Figure(go.Indicator(
-          mode="gauge+number",
-          value=score,
-          title={"text": f"Score de Fundo - {classificacao}", "font": {"size": 20}},
-          gauge={
-                        "axis": {"range": [0, 100]},
-                        "bar": {"color": cor_score(score)},
-                        "steps": [
-                                          {"range": [0, 40], "color": "#3d1a1a"},
-                                          {"range": [40, 70], "color": "#3d3a1a"},
-                                          {"range": [70, 100], "color": "#1a3d24"},
-                        ],
-          },
-))
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=score,
+        title={"text": f"Score de Fundo - {classificacao}", "font": {"size": 20}},
+        gauge={
+            "axis": {"range": [0, 100]},
+            "bar": {"color": cor_score(score)},
+            "steps": [
+                {"range": [0, 40], "color": "#3d1a1a"},
+                {"range": [40, 70], "color": "#3d3a1a"},
+                {"range": [70, 100], "color": "#1a3d24"},
+            ],
+        },
+    ))
     fig.update_layout(height=300, margin=dict(l=20, r=20, t=60, b=20))
     return fig
 
 
 def card_indicador(nome, valor, ativo, formato="{:.2f}"):
-      cor = "#00c853" if ativo else "#616161"
+    cor = "#00c853" if ativo else "#616161"
     valor_fmt = formato.format(valor) if valor is not None else "N/D"
     st.markdown(
-              f"""
-                      <div style="background-color:{cor}22; border-left:4px solid {cor};
-                                          padding:12px; border-radius:6px; margin-bottom:8px;">
-                                                      <div style="font-size:13px; color:#aaa;">{nome}</div>
-                                                                  <div style="font-size:22px; font-weight:bold;">{valor_fmt}</div>
-                                                                          </div>
-                                                                                  """,
-              unsafe_allow_html=True,
+        f"""
+        <div style="background-color:{cor}22; border-left:4px solid {cor};
+                    padding:12px; border-radius:6px; margin-bottom:8px;">
+            <div style="font-size:13px; color:#aaa;">{nome}</div>
+            <div style="font-size:22px; font-weight:bold;">{valor_fmt}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 
@@ -76,10 +76,10 @@ st.caption("Monitoramento pessoal - dados on-chain + tecnicos - 100% gratuito")
 df = carregar_historico()
 
 if df.empty:
-      st.warning(
-          "Sem dados ainda. Rode o workflow do GitHub Actions manualmente uma vez "
-          "(Actions -> Coletor Diario BTC -> Run workflow), depois recarregue esta pagina."
-)
+    st.warning(
+        "Sem dados ainda. Rode o workflow do GitHub Actions manualmente uma vez "
+        "(Actions -> Coletor Diario BTC -> Run workflow), depois recarregue esta pagina."
+    )
     st.stop()
 
 df["data"] = pd.to_datetime(df["data"])
@@ -89,21 +89,21 @@ ultimo = df.iloc[-1]
 col1, col2 = st.columns([1, 2])
 
 with col1:
-      st.plotly_chart(velocimetro(ultimo["score_final"], ultimo["classificacao"]), use_container_width=True)
+    st.plotly_chart(velocimetro(ultimo["score_final"], ultimo["classificacao"]), use_container_width=True)
 
 with col2:
-      st.subheader("Condicoes obrigatorias")
+    st.subheader("Condicoes obrigatorias")
     condicoes = ultimo["condicoes"]
     if isinstance(condicoes, str):
-              condicoes = _json.loads(condicoes)
+        condicoes = _json.loads(condicoes)
 
     c1, c2 = st.columns(2)
     with c1:
-              card_indicador("MVRV Z-Score < 0.3", ultimo["mvrv_zscore"], condicoes.get("mvrv_baixo"))
-              card_indicador("Fear & Greed < 25", ultimo["fear_greed"], condicoes.get("medo_extremo"), "{:.0f}")
-          with c2:
-                    card_indicador("RSI diario < 35", ultimo["rsi"], condicoes.get("rsi_sobrevendido"))
-                    card_indicador("Preco <= Realized Price", ultimo["preco"], condicoes.get("perto_realized_price"), "${:,.0f}")
+        card_indicador("MVRV Z-Score < 0.3", ultimo["mvrv_zscore"], condicoes.get("mvrv_baixo"))
+        card_indicador("Fear & Greed < 25", ultimo["fear_greed"], condicoes.get("medo_extremo"), "{:.0f}")
+    with c2:
+        card_indicador("RSI diario < 35", ultimo["rsi"], condicoes.get("rsi_sobrevendido"))
+        card_indicador("Preco <= Realized Price", ultimo["preco"], condicoes.get("perto_realized_price"), "${:,.0f}")
 
 st.divider()
 
@@ -121,15 +121,15 @@ st.subheader("Historico - Preco vs Score de Fundo")
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=df["data"], y=df["preco"], name="Preco BTC", yaxis="y1", line=dict(color="#f7931a")))
 fig.add_trace(go.Scatter(x=df["data"], y=df["realized_price"], name="Realized Price", yaxis="y1",
-                                                   line=dict(color="#888", dash="dot")))
+                          line=dict(color="#888", dash="dot")))
 fig.add_trace(go.Scatter(x=df["data"], y=df["score_final"], name="Score de Fundo", yaxis="y2",
-                                                   line=dict(color="#00c853")))
+                          line=dict(color="#00c853")))
 
 fig.update_layout(
-      yaxis=dict(title="Preco (USD)", side="left"),
-      yaxis2=dict(title="Score (0-100)", side="right", overlaying="y", range=[0, 100]),
-      height=450,
-      legend=dict(orientation="h", y=1.1),
+    yaxis=dict(title="Preco (USD)", side="left"),
+    yaxis2=dict(title="Score (0-100)", side="right", overlaying="y", range=[0, 100]),
+    height=450,
+    legend=dict(orientation="h", y=1.1),
 )
 st.plotly_chart(fig, use_container_width=True)
 
@@ -137,9 +137,9 @@ st.divider()
 
 st.subheader("Sua leitura manual do grafico")
 st.text_area(
-      "Registre padroes que voce identificou (suporte, engolfo, divergencia StochRSI, etc.)",
-      placeholder="Ex: possivel fundo, padrao de 46 barras se repetindo...",
-      height=100,
+    "Registre padroes que voce identificou (suporte, engolfo, divergencia StochRSI, etc.)",
+    placeholder="Ex: possivel fundo, padrao de 46 barras se repetindo...",
+    height=100,
 )
 st.caption("Este campo ainda nao persiste entre sessoes.")
 
