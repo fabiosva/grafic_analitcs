@@ -16,7 +16,7 @@ SUPABASE_URL = st.secrets.get("SUPABASE_URL", os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", os.environ.get("SUPABASE_KEY", ""))
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=900)
 def carregar_historico():
     if not SUPABASE_URL or not SUPABASE_KEY:
         return pd.DataFrame()
