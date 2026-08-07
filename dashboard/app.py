@@ -58,7 +58,7 @@ def velocimetro(score, classificacao):
 
 def card_indicador(nome, valor, ativo, formato="{:.2f}"):
     cor = "#00c853" if ativo else "#616161"
-    valor_fmt = formato.format(valor) if valor is not None else "N/D"
+    valor_fmt = formato.format(valor) if pd.notna(valor) else "N/D"
     st.markdown(
         f"""
         <div style="background-color:{cor}22; border-left:4px solid {cor};
@@ -96,7 +96,9 @@ def ultimo_valido(coluna):
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    st.plotly_chart(velocimetro(ultimo["score_final"], ultimo["classificacao"]), use_container_width=True)
+    score_exibido = ultimo["score_final"] if pd.notna(ultimo["score_final"]) else 0
+    classificacao_exibida = ultimo["classificacao"] if pd.notna(ultimo["classificacao"]) else "N/D"
+    st.plotly_chart(velocimetro(score_exibido, classificacao_exibida), use_container_width=True)
 
 with col2:
     st.subheader("Condicoes obrigatorias")
