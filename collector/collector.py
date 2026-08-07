@@ -6,7 +6,7 @@ Fontes 100% gratuitas: bitcoin-data.com, alternative.me, coinbase
 import requests
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 BD_BASE = "https://bitcoin-data.com/v1"
 FNG_URL = "https://api.alternative.me/fng/?limit=1"
@@ -14,6 +14,11 @@ COINBASE_URL = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+# Halvings do Bitcoin e os fundos ciclicos que se seguiram a cada um.
+# Usado para estimar heuristicamente uma janela temporal de proximo fundo.
+HALVINGS = ["2012-11-28", "2016-07-09", "2020-05-11", "2024-04-20"]
+FUNDOS_POS_HALVING = ["2015-01-14", "2018-12-15", "2022-11-21"]
 
 
 def fetch_latest(endpoint: str, key: str):
@@ -49,6 +54,60 @@ def fetch_price():
         return None
 
 
+def stoch_rsi(rsi_series: list, period: int = 14, smooth_k: int = 3, smooth_d: int = 3):
+    """
+    rsi_series: valores de RSI em ordem cronologica (mais antigo -> mais recente).
+    Retorna (%K, %D) do StochRSI mais recente, ou (None, None) se nao houver dados suficientes.
+    """
+    validos = [v for v in rsi_series if v is not None]
+    if len(validos) < period + smooth_k + smooth_d:
+        return None, None
+
+    stoch_vals = []
+    for i in range(period - 1, len(validos)):
+        janela = validos[i - period + 1:i + 1]
+        lo, hi = min(janela), max(janela)
+        if hi == lo:
+            stoch_vals.append(0.0)
+        else:
+            stoch_vals.append((validos[i] - lo) / (hi - lo) * 100)
+
+    def sma(vals, n):
+        return [sum(vals[i - n + 1:i + 1]) / n for i in range(n - 1, len(vals))]
+
+    k_vals = sma(stoch_vals, smooth_k)
+    d_vals = sma(k_vals, smooth_d)
+    if not k_vals or not d_vals:
+        return None, None
+    return round(k_vals[-1], 2), round(d_vals[-1], 2)
+
+
+def ciclo_halving(hoje: datetime) -> dict:
+    halvings = [datetime.strptime(d, "%Y-%m-%d").replace(tzinfo=timezone.utc) for d in HALVINGS]
+    fundos = [datetime.strptime(d, "%Y-%m-%d").replace(tzinfo=timezone.utc) for d in FUNDOS_POS_HALVING]
+
+    deltas_dias = [(f - h).days for h, f in zip(halvings, fundos)]
+    media_dias = sum(deltas_dias) / len(deltas_dias)
+    variancia = sum((d - media_dias) ** 2 for d in deltas_dias) / len(deltas_dias)
+    desvio_dias = variancia ** 0.5
+
+    ultimo_halving = max(h for h in halvings if h <= hoje)
+    dias_desde_halving = (hoje - ultimo_halving).days
+
+    estimativa = ultimo_halving + timedelta(days=media_dias)
+    janela_inicio = ultimo_halving + timedelta(days=media_dias - desvio_dias)
+    janela_fim = ultimo_halving + timedelta(days=media_dias + desvio_dias)
+
+    return {
+        "ultimo_halving": ultimo_halving.strftime("%Y-%m-%d"),
+        "dias_desde_halving": dias_desde_halving,
+        "fundo_estimado": estimativa.strftime("%Y-%m-%d"),
+        "janela_estimada_inicio": janela_inicio.strftime("%Y-%m-%d"),
+        "janela_estimada_fim": janela_fim.strftime("%Y-%m-%d"),
+        "dias_ate_fundo_estimado": (estimativa - hoje).days,
+    }
+
+
 def calcular_score(dados: dict) -> dict:
     condicoes = {
         "mvrv_baixo": dados.get("mvrv_zscore") is not None and dados["mvrv_zscore"] < 0.3,
@@ -69,6 +128,14 @@ def calcular_score(dados: dict) -> dict:
     if dados.get("sopr") is not None and dados["sopr"] < 1:
         bonus += 10
     if dados.get("puell_multiple") is not None and dados["puell_multiple"] < 0.5:
+        bonus += 10
+    if dados.get("stoch_rsi_k") is not None and dados["stoch_rsi_k"] < 20:
+        bonus += 10
+    if (
+        dados.get("preco") is not None
+        and dados.get("sma200") is not None
+        and dados["preco"] < dados["sma200"]
+    ):
         bonus += 10
 
     score_obrigatorias = (obrigatorias_ativas / 4) * 70
@@ -110,7 +177,8 @@ def salvar_supabase(registro: dict):
 
 
 def main():
-    print(f"=== Coleta iniciada: {datetime.now(timezone.utc).isoformat()} ===")
+    agora = datetime.now(timezone.utc)
+    print(f"=== Coleta iniciada: {agora.isoformat()} ===")
 
     dados = {
         "preco": fetch_price(),
@@ -124,22 +192,29 @@ def main():
 
     try:
         r = requests.get(f"{BD_BASE}/technical-indicators", timeout=15)
-        ti = r.json()[-1]
+        ti_full = r.json()
+        ti = ti_full[-1]
         dados["rsi"] = ti.get("rsi")
         dados["sma50"] = ti.get("sma50")
         dados["sma200"] = ti.get("sma200")
+
+        rsi_series = [item.get("rsi") for item in ti_full[-120:]]
+        dados["stoch_rsi_k"], dados["stoch_rsi_d"] = stoch_rsi(rsi_series)
     except Exception as e:
         print(f"Erro technical-indicators: {e}")
         dados["rsi"] = dados["sma50"] = dados["sma200"] = None
+        dados["stoch_rsi_k"] = dados["stoch_rsi_d"] = None
 
     score = calcular_score(dados)
+    halving = ciclo_halving(agora)
 
     registro = {
-        "data": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "data": agora.strftime("%Y-%m-%d"),
         **dados,
         **score,
+        **halving,
         "condicoes": json.dumps(score["condicoes"]),
-        "atualizado_em": datetime.now(timezone.utc).isoformat(),
+        "atualizado_em": agora.isoformat(),
     }
 
     print(json.dumps(registro, indent=2, ensure_ascii=False))

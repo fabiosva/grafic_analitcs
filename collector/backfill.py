@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
-from collector import calcular_score  # noqa: E402
+from collector import calcular_score, ciclo_halving, stoch_rsi  # noqa: E402
 
 BD_BASE = "https://bitcoin-data.com/v1"
 FNG_URL = "https://api.alternative.me/fng/?limit=0&format=json"
@@ -102,6 +102,10 @@ def main():
 
     print(f"Dias com preco disponivel: {len(precos)}")
 
+    ti_datas_ordenadas = sorted(ti.keys())
+    rsi_por_data_ordenada = [ti[d].get("rsi") for d in ti_datas_ordenadas]
+    indice_data = {d: i for i, d in enumerate(ti_datas_ordenadas)}
+
     registros = []
     for data_str, preco in sorted(precos.items()):
         dados = {
@@ -116,11 +120,22 @@ def main():
             "sma50": ti.get(data_str, {}).get("sma50"),
             "sma200": ti.get(data_str, {}).get("sma200"),
         }
+
+        if data_str in indice_data:
+            fim = indice_data[data_str] + 1
+            janela_rsi = rsi_por_data_ordenada[max(0, fim - 120):fim]
+            dados["stoch_rsi_k"], dados["stoch_rsi_d"] = stoch_rsi(janela_rsi)
+        else:
+            dados["stoch_rsi_k"] = dados["stoch_rsi_d"] = None
+
         score = calcular_score(dados)
+        dia_dt = datetime.strptime(data_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        halving = ciclo_halving(dia_dt)
         registro = {
             "data": data_str,
             **dados,
             **score,
+            **halving,
             "condicoes": json.dumps(score["condicoes"]),
             "atualizado_em": datetime.now(timezone.utc).isoformat(),
         }
