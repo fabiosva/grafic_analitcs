@@ -41,9 +41,9 @@ def velocimetro(score, classificacao):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=score,
-        title={"text": f"Score de Fundo - {classificacao}", "font": {"size": 20}},
+        title={"text": f"Score de Fundo - {classificacao}", "font": {"size": 16}},
         gauge={
-            "axis": {"range": [0, 100]},
+            "axis": {"range": [0, 100], "tickfont": {"size": 11}},
             "bar": {"color": cor_score(score)},
             "steps": [
                 {"range": [0, 40], "color": "#3d1a1a"},
@@ -52,7 +52,7 @@ def velocimetro(score, classificacao):
             ],
         },
     ))
-    fig.update_layout(height=300, margin=dict(l=20, r=20, t=60, b=20))
+    fig.update_layout(height=300, margin=dict(l=35, r=35, t=60, b=20), autosize=True)
     return fig
 
 
@@ -126,18 +126,21 @@ st.caption(
     "(ColinTalksCrypto Bitcoin Bull Run Index), um dos indices compostos de ciclo "
     "mais usados publicamente."
 )
-b1, b2, b3, b4, b5, b6, b7 = st.columns(7)
 nupl_v = ultimo_valido("nupl")
 sopr_v = ultimo_valido("sopr")
 puell_v = ultimo_valido("puell_multiple")
 realized_v = ultimo_valido("realized_price")
+stoch_k = ultimo_valido("stoch_rsi_k")
 reserve_risk_v = ultimo_valido("reserve_risk")
 rhodl_v = ultimo_valido("rhodl_ratio")
+
+b1, b2, b3, b4 = st.columns(4)
 b1.metric("NUPL", f"{nupl_v:.3f}" if nupl_v is not None else "N/D")
 b2.metric("SOPR", f"{sopr_v:.3f}" if sopr_v is not None else "N/D")
 b3.metric("Puell Multiple", f"{puell_v:.3f}" if puell_v is not None else "N/D")
 b4.metric("Realized Price", f"${realized_v:,.0f}" if realized_v is not None else "N/D")
-stoch_k = ultimo_valido("stoch_rsi_k")
+
+b5, b6, b7 = st.columns(3)
 b5.metric("StochRSI %K", f"{stoch_k:.1f}" if stoch_k is not None else "N/D")
 b6.metric("Reserve Risk", f"{reserve_risk_v:.5f}" if reserve_risk_v is not None else "N/D")
 b7.metric("RHODL Ratio", f"{rhodl_v:,.0f}" if rhodl_v is not None else "N/D")
