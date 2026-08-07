@@ -102,26 +102,34 @@ with col1:
 
 with col2:
     st.subheader("Condicoes obrigatorias")
+    st.caption(
+        "Alguns indicadores on-chain tem 1 dia de atraso na fonte - quando isso acontece, "
+        "mostramos o ultimo valor conhecido, mas a avaliacao da condicao usa o dado mais recente."
+    )
     condicoes = ultimo["condicoes"]
     if isinstance(condicoes, str):
         condicoes = _json.loads(condicoes)
 
     c1, c2 = st.columns(2)
     with c1:
-        card_indicador("MVRV Z-Score < 0.3", ultimo["mvrv_zscore"], condicoes.get("mvrv_baixo"))
-        card_indicador("Fear & Greed < 25", ultimo["fear_greed"], condicoes.get("medo_extremo"), "{:.0f}")
+        card_indicador("MVRV Z-Score < 0.3", ultimo_valido("mvrv_zscore"), condicoes.get("mvrv_baixo"))
+        card_indicador("Fear & Greed < 25", ultimo_valido("fear_greed"), condicoes.get("medo_extremo"), "{:.0f}")
     with c2:
-        card_indicador("RSI diario < 35", ultimo["rsi"], condicoes.get("rsi_sobrevendido"))
+        card_indicador("RSI diario < 35", ultimo_valido("rsi"), condicoes.get("rsi_sobrevendido"))
         card_indicador("Preco <= Realized Price", ultimo["preco"], condicoes.get("perto_realized_price"), "${:,.0f}")
 
 st.divider()
 
 st.subheader("Indicadores complementares")
 b1, b2, b3, b4, b5 = st.columns(5)
-b1.metric("NUPL", f"{ultimo['nupl']:.3f}" if pd.notna(ultimo['nupl']) else "N/D")
-b2.metric("SOPR", f"{ultimo['sopr']:.3f}" if pd.notna(ultimo['sopr']) else "N/D")
-b3.metric("Puell Multiple", f"{ultimo['puell_multiple']:.3f}" if pd.notna(ultimo['puell_multiple']) else "N/D")
-b4.metric("Realized Price", f"${ultimo['realized_price']:,.0f}" if pd.notna(ultimo['realized_price']) else "N/D")
+nupl_v = ultimo_valido("nupl")
+sopr_v = ultimo_valido("sopr")
+puell_v = ultimo_valido("puell_multiple")
+realized_v = ultimo_valido("realized_price")
+b1.metric("NUPL", f"{nupl_v:.3f}" if nupl_v is not None else "N/D")
+b2.metric("SOPR", f"{sopr_v:.3f}" if sopr_v is not None else "N/D")
+b3.metric("Puell Multiple", f"{puell_v:.3f}" if puell_v is not None else "N/D")
+b4.metric("Realized Price", f"${realized_v:,.0f}" if realized_v is not None else "N/D")
 stoch_k = ultimo_valido("stoch_rsi_k")
 b5.metric("StochRSI %K", f"{stoch_k:.1f}" if stoch_k is not None else "N/D")
 
