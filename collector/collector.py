@@ -137,6 +137,10 @@ def calcular_score(dados: dict) -> dict:
         and dados["preco"] < dados["sma200"]
     ):
         bonus += 10
+    if dados.get("reserve_risk") is not None and dados["reserve_risk"] < 0.002:
+        bonus += 10
+    if dados.get("rhodl_ratio") is not None and dados["rhodl_ratio"] < 1000:
+        bonus += 10
 
     score_obrigatorias = (obrigatorias_ativas / 4) * 70
     score_final = min(100, score_obrigatorias + bonus)
@@ -187,6 +191,8 @@ def main():
         "sopr": fetch_latest("sopr", "sopr"),
         "realized_price": fetch_latest("realized-price", "realizedPrice"),
         "puell_multiple": fetch_latest("puell-multiple", "puellMultiple"),
+        "reserve_risk": fetch_latest("reserve-risk", "reserveRisk"),
+        "rhodl_ratio": fetch_latest("rhodl-ratio", "rhodlRatio"),
         "fear_greed": fetch_fear_greed(),
     }
 

@@ -121,17 +121,26 @@ with col2:
 st.divider()
 
 st.subheader("Indicadores complementares")
-b1, b2, b3, b4, b5 = st.columns(5)
+st.caption(
+    "Reserve Risk e RHODL Ratio sao 2 dos 9 componentes do indice CBBI "
+    "(ColinTalksCrypto Bitcoin Bull Run Index), um dos indices compostos de ciclo "
+    "mais usados publicamente."
+)
+b1, b2, b3, b4, b5, b6, b7 = st.columns(7)
 nupl_v = ultimo_valido("nupl")
 sopr_v = ultimo_valido("sopr")
 puell_v = ultimo_valido("puell_multiple")
 realized_v = ultimo_valido("realized_price")
+reserve_risk_v = ultimo_valido("reserve_risk")
+rhodl_v = ultimo_valido("rhodl_ratio")
 b1.metric("NUPL", f"{nupl_v:.3f}" if nupl_v is not None else "N/D")
 b2.metric("SOPR", f"{sopr_v:.3f}" if sopr_v is not None else "N/D")
 b3.metric("Puell Multiple", f"{puell_v:.3f}" if puell_v is not None else "N/D")
 b4.metric("Realized Price", f"${realized_v:,.0f}" if realized_v is not None else "N/D")
 stoch_k = ultimo_valido("stoch_rsi_k")
 b5.metric("StochRSI %K", f"{stoch_k:.1f}" if stoch_k is not None else "N/D")
+b6.metric("Reserve Risk", f"{reserve_risk_v:.5f}" if reserve_risk_v is not None else "N/D")
+b7.metric("RHODL Ratio", f"{rhodl_v:,.0f}" if rhodl_v is not None else "N/D")
 
 st.divider()
 
@@ -172,6 +181,10 @@ if condicoes.get("perto_realized_price"):
     condicoes_ativas_bonus.append("Preco perto do Realized Price")
 if stoch_k is not None and stoch_k < 20:
     condicoes_ativas_bonus.append("StochRSI sobrevendido")
+if reserve_risk_v is not None and reserve_risk_v < 0.002:
+    condicoes_ativas_bonus.append("Reserve Risk baixo")
+if rhodl_v is not None and rhodl_v < 1000:
+    condicoes_ativas_bonus.append("RHODL Ratio baixo")
 
 if ultimo["obrigatorias_ativas"] == 4:
     st.success(

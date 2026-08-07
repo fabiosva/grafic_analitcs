@@ -92,6 +92,8 @@ def main():
     sopr = fetch_full("sopr", "sopr.json")
     realized = fetch_full("realized-price", "realized.json")
     puell = fetch_full("puell-multiple", "puell.json")
+    reserve_risk = fetch_full("reserve-risk", "reserve_risk.json")
+    rhodl = fetch_full("rhodl-ratio", "rhodl.json")
     ti = fetch_full("technical-indicators", "ti.json")
 
     print("Buscando Fear & Greed historico...")
@@ -115,6 +117,8 @@ def main():
             "sopr": sopr.get(data_str, {}).get("sopr"),
             "realized_price": realized.get(data_str, {}).get("realizedPrice"),
             "puell_multiple": puell.get(data_str, {}).get("puellMultiple"),
+            "reserve_risk": reserve_risk.get(data_str, {}).get("reserveRisk"),
+            "rhodl_ratio": rhodl.get(data_str, {}).get("rhodlRatio"),
             "fear_greed": fng.get(data_str),
             "rsi": ti.get(data_str, {}).get("rsi"),
             "sma50": ti.get(data_str, {}).get("sma50"),

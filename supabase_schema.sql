@@ -6,6 +6,8 @@ create table if not exists bottom_indicators (
     sopr numeric,
     realized_price numeric,
     puell_multiple numeric,
+    reserve_risk numeric,
+    rhodl_ratio numeric,
     fear_greed integer,
     rsi numeric,
     sma50 numeric,
