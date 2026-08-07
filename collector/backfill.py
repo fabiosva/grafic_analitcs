@@ -3,10 +3,10 @@ Backfill historico de indicadores BTC - roda uma vez manualmente.
 Usa o mesmo calculo de score do collector.py, mas para o ultimo ano
 (limitado pela cobertura gratuita de preco historico do CoinGecko).
 """
+import bisect
 import json
 import os
 import sys
-import time
 from datetime import datetime, timezone
 
 import requests
@@ -68,6 +68,30 @@ def fetch_price_by_date() -> dict:
     return out
 
 
+class SerieComFallback:
+    """
+    Indexa um dict {data: item} por data e permite buscar o valor mais
+    recente disponivel em ou antes de uma data alvo. Necessario porque as
+    fontes on-chain publicam com 1-2 dias de atraso: sem isso, o dia mais
+    recente fica com todos os indicadores nulos (e o score sai zerado a
+    toa) ate a fonte publicar.
+    """
+
+    def __init__(self, dados_por_data: dict):
+        self.dados = dados_por_data
+        self.datas_ordenadas = sorted(dados_por_data.keys())
+
+    def valor(self, data_str: str, campo: str):
+        if data_str in self.dados:
+            v = self.dados[data_str].get(campo)
+            if v is not None:
+                return v
+        i = bisect.bisect_right(self.datas_ordenadas, data_str) - 1
+        if i < 0:
+            return None
+        return self.dados[self.datas_ordenadas[i]].get(campo)
+
+
 def upsert_batch(registros: list):
     headers = {
         "apikey": SUPABASE_KEY,
@@ -104,29 +128,38 @@ def main():
 
     print(f"Dias com preco disponivel: {len(precos)}")
 
+    mvrv_s = SerieComFallback(mvrv)
+    nupl_s = SerieComFallback(nupl)
+    sopr_s = SerieComFallback(sopr)
+    realized_s = SerieComFallback(realized)
+    puell_s = SerieComFallback(puell)
+    reserve_risk_s = SerieComFallback(reserve_risk)
+    rhodl_s = SerieComFallback(rhodl)
+    ti_s = SerieComFallback(ti)
+
     ti_datas_ordenadas = sorted(ti.keys())
     rsi_por_data_ordenada = [ti[d].get("rsi") for d in ti_datas_ordenadas]
-    indice_data = {d: i for i, d in enumerate(ti_datas_ordenadas)}
 
     registros = []
     for data_str, preco in sorted(precos.items()):
         dados = {
             "preco": preco,
-            "mvrv_zscore": mvrv.get(data_str, {}).get("mvrvZscore"),
-            "nupl": nupl.get(data_str, {}).get("nupl"),
-            "sopr": sopr.get(data_str, {}).get("sopr"),
-            "realized_price": realized.get(data_str, {}).get("realizedPrice"),
-            "puell_multiple": puell.get(data_str, {}).get("puellMultiple"),
-            "reserve_risk": reserve_risk.get(data_str, {}).get("reserveRisk"),
-            "rhodl_ratio": rhodl.get(data_str, {}).get("rhodlRatio"),
+            "mvrv_zscore": mvrv_s.valor(data_str, "mvrvZscore"),
+            "nupl": nupl_s.valor(data_str, "nupl"),
+            "sopr": sopr_s.valor(data_str, "sopr"),
+            "realized_price": realized_s.valor(data_str, "realizedPrice"),
+            "puell_multiple": puell_s.valor(data_str, "puellMultiple"),
+            "reserve_risk": reserve_risk_s.valor(data_str, "reserveRisk"),
+            "rhodl_ratio": rhodl_s.valor(data_str, "rhodlRatio"),
             "fear_greed": fng.get(data_str),
-            "rsi": ti.get(data_str, {}).get("rsi"),
-            "sma50": ti.get(data_str, {}).get("sma50"),
-            "sma200": ti.get(data_str, {}).get("sma200"),
+            "rsi": ti_s.valor(data_str, "rsi"),
+            "sma50": ti_s.valor(data_str, "sma50"),
+            "sma200": ti_s.valor(data_str, "sma200"),
         }
 
-        if data_str in indice_data:
-            fim = indice_data[data_str] + 1
+        idx = bisect.bisect_right(ti_datas_ordenadas, data_str) - 1
+        if idx >= 0:
+            fim = idx + 1
             janela_rsi = rsi_por_data_ordenada[max(0, fim - 120):fim]
             dados["stoch_rsi_k"], dados["stoch_rsi_d"] = stoch_rsi(janela_rsi)
         else:
