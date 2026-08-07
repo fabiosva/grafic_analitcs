@@ -198,6 +198,37 @@ else:
 
 st.divider()
 
+st.subheader("Cruzamento SMA 50/200")
+sma_df = df.dropna(subset=["sma50", "sma200"]).tail(30)
+if len(sma_df) >= 5:
+    gap_atual = sma_df["sma50"].iloc[-1] - sma_df["sma200"].iloc[-1]
+    gap_anterior = sma_df["sma50"].iloc[0] - sma_df["sma200"].iloc[0]
+    dias_janela = (sma_df["data"].iloc[-1] - sma_df["data"].iloc[0]).days
+    variacao_dia = (gap_atual - gap_anterior) / dias_janela if dias_janela else 0
+
+    estado = "SMA50 acima da SMA200 (golden cross ativo)" if gap_atual > 0 else "SMA50 abaixo da SMA200 (death cross ativo)"
+    s1, s2, s3 = st.columns(3)
+    s1.metric("Estado atual", "Golden cross" if gap_atual > 0 else "Death cross")
+    s2.metric("Distancia entre as medias", f"${abs(gap_atual):,.0f}")
+
+    if variacao_dia != 0 and (gap_atual > 0) != (variacao_dia > 0):
+        dias_para_cruzar = abs(gap_atual / variacao_dia)
+        data_cruzamento = pd.Timestamp.now(tz="UTC") + pd.Timedelta(days=dias_para_cruzar)
+        s3.metric("Projecao de cruzamento", f"~{data_cruzamento:%b/%Y}")
+        st.caption(
+            f"{estado}. Pelo ritmo de convergencia dos ultimos {dias_janela} dias, as medias "
+            f"cruzariam em aproximadamente {dias_para_cruzar:.0f} dias "
+            f"({data_cruzamento:%d/%m/%Y}) - projecao simples por extrapolacao linear, "
+            "nao e garantia de nada."
+        )
+    else:
+        s3.metric("Projecao de cruzamento", "Divergindo")
+        st.caption(f"{estado}, e a distancia entre as medias esta aumentando, nao diminuindo.")
+else:
+    st.caption("Dados insuficientes de SMA50/SMA200 para esta analise.")
+
+st.divider()
+
 st.subheader("Historico - Preco, Score de Fundo e StochRSI")
 
 fig = make_subplots(
