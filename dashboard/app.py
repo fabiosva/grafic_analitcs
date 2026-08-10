@@ -312,7 +312,7 @@ hold_years = max(0, (next_top_central - as_of).days / 365.25)
 
 r1, r2, r3, r4 = st.columns(4)
 r1.metric("É hora de comprar?", f"{readiness['score']:.0f}/100", help="Junta as notas do painel com a proximidade do período de fundo. Nota alta não garante que o fundo chegou.")
-r2.metric("O que o simulador sugere", readiness["label"])
+r2.metric("O que o simulador sugere", readiness["label"], help=readiness["detail"])
 r3.metric("Quanto de BTC você teria no fim", f"₿ {dca['btc']:.6f}")
 r4.metric("Preço médio que você pagaria", f"US$ {dca['effective_entry_usd']:,.0f}")
 

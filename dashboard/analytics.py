@@ -209,15 +209,16 @@ def purchase_readiness(indicator_score: float, as_of: pd.Timestamp, window_start
         distance = (as_of - window_end).days
         timing = max(20.0, 100 - distance / 180 * 60)
     score = indicator_score * 0.75 + timing * 0.25
+    # Rotulo curto cabe no card; a frase inteira vai para o tooltip.
     if score >= 80:
-        label = "Bom momento para começar a comprar"
+        label, detail = "Bom momento", "Bom momento para começar a comprar aos poucos."
     elif score >= 60:
-        label = "Comprar um pouco e guardar o resto"
+        label, detail = "Comprar pouco", "Dá para comprar um pouco agora e guardar o resto para depois."
     elif score >= 40:
-        label = "Comprar pouco ou esperar mais"
+        label, detail = "Quase lá", "Melhor comprar bem pouco ou esperar mais um pouco."
     else:
-        label = "Melhor esperar"
-    return {"score": score, "timing_score": timing, "label": label}
+        label, detail = "Esperar", "Ainda é cedo para comprar. Melhor esperar."
+    return {"score": score, "timing_score": timing, "label": label, "detail": detail}
 
 
 def simulate_dca(capital_brl: float, current_price_usd: float, window_price_usd: float,
