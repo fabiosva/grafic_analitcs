@@ -182,7 +182,16 @@ previous_confirmation = confirmation_series.dropna().iloc[-2] if confirmation_se
 daily_delta = confirmation_today - previous_confirmation
 
 cycle_prices = load_cycle_prices()
-projection = build_cycle_projection(cycle_prices if not cycle_prices.empty else df)
+try:
+    projection = build_cycle_projection(cycle_prices if not cycle_prices.empty else df)
+except ValueError:
+    st.error(
+        "Faltou histórico de preço para calcular o período provável do fundo. "
+        "Essa parte precisa de uns 4 anos de cotação e o arquivo "
+        "`collector/data/price_history.json` não chegou até aqui. "
+        "Rode o backfill de novo para gerar esse arquivo."
+    )
+    st.stop()
 window_start, window_end = projection["consensus_start"], projection["consensus_end"]
 as_of = pd.Timestamp(last["data"])
 days_to_window = (window_start.normalize() - as_of.normalize()).days
