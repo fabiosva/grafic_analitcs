@@ -105,15 +105,33 @@ def latest_value(df: pd.DataFrame, column: str):
     return row[column], pd.Timestamp(row["data"])
 
 
-def historical_analogs(df: pd.DataFrame, k: int = 20, horizons=(3, 7, 14, 30)) -> dict | None:
+def _wilson_interval(sucessos: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """Intervalo de confianca de 95% (Wilson) pra uma proporcao com amostra pequena."""
+    if n == 0:
+        return (0.0, 100.0)
+    p = sucessos / n
+    denom = 1 + z ** 2 / n
+    centro = p + z ** 2 / (2 * n)
+    margem = z * ((p * (1 - p) / n + z ** 2 / (4 * n ** 2)) ** 0.5)
+    lo = (centro - margem) / denom
+    hi = (centro + margem) / denom
+    return (max(0.0, lo * 100), min(100.0, hi * 100))
+
+
+def historical_analogs(df: pd.DataFrame, k: int = 15, horizons=(3, 7, 14, 30)) -> dict | None:
     """
     Acha os K dias historicos mais parecidos com hoje (RSI, StochRSI, preco vs
     medias moveis, Z-Score de 90 dias) e olha o que o preco realmente fez nos
     dias seguintes a cada um deles.
 
+    Os candidatos sao escolhidos exigindo pelo menos `max(horizons)` dias de
+    distancia entre eles, pra evitar que o mesmo periodo historico (varios
+    dias consecutivos parecidos) conte como se fossem N casos independentes
+    quando na pratica e o mesmo episodio.
+
     Isso NAO e uma previsao: e frequencia historica em situacoes parecidas,
-    com amostra pequena e vizinhos que costumam vir agrupados de poucos
-    periodos historicos (nao sao pontos independentes).
+    com amostra pequena. O intervalo de confianca (Wilson, 95%) mostra o
+    quanto essa frequencia pode estar variando so por acaso.
     """
     work = df.copy()
     price = pd.to_numeric(work["preco"], errors="coerce")
@@ -144,8 +162,18 @@ def historical_analogs(df: pd.DataFrame, k: int = 20, horizons=(3, 7, 14, 30)) -
     mean, std = candidates.mean(), candidates.std().replace(0, np.nan)
     norm = (candidates - mean) / std
     today_norm = (today_vec - mean) / std
-    dist = ((norm - today_norm) ** 2).sum(axis=1).pow(0.5)
-    nearest = dist.nsmallest(k).index
+    dist = ((norm - today_norm) ** 2).sum(axis=1).pow(0.5).sort_values()
+
+    # Selecao gulosa: so aceita um candidato se ele estiver a pelo menos
+    # max_h dias de distancia de todos os ja escolhidos (episodios distintos).
+    nearest = []
+    for pos in dist.index:
+        if all(abs(pos - escolhido) >= max_h for escolhido in nearest):
+            nearest.append(pos)
+        if len(nearest) >= k:
+            break
+    if len(nearest) < max(5, k // 2):
+        return None  # poucos episodios de fato independentes no historico
 
     resultados = {}
     for h in horizons:
@@ -169,8 +197,13 @@ def historical_analogs(df: pd.DataFrame, k: int = 20, horizons=(3, 7, 14, 30)) -
             continue
         retornos = np.array(retornos)
         preco_hoje = float(price.iloc[today_pos])
+        sucessos = int((retornos > 0).sum())
+        ic_baixo, ic_alto = _wilson_interval(sucessos, len(retornos))
         resultados[h] = {
             "prob_alta": float((retornos > 0).mean() * 100),
+            "prob_alta_ic_baixo": ic_baixo,
+            "prob_alta_ic_alto": ic_alto,
+            "inconclusivo": ic_baixo <= 50 <= ic_alto,
             "retorno_medio_pct": float(retornos.mean()),
             "retorno_mediano_pct": float(np.median(retornos)),
             "n_amostras": len(retornos),
@@ -180,8 +213,8 @@ def historical_analogs(df: pd.DataFrame, k: int = 20, horizons=(3, 7, 14, 30)) -
         }
     if not resultados:
         return None
-    datas_vizinhas = work.loc[list(nearest), "data"].tolist()
-    return {"horizontes": resultados, "datas_vizinhas": datas_vizinhas}
+    datas_vizinhas = work.loc[nearest, "data"].tolist()
+    return {"horizontes": resultados, "datas_vizinhas": datas_vizinhas, "n_episodios": len(nearest)}
 
 
 def _date_window(anchor: pd.Timestamp, samples: np.ndarray) -> dict:

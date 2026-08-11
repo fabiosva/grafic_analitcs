@@ -289,14 +289,17 @@ LENS_COPY = {
     "Preço está barato?": "Compara o preço de hoje com o dos fundos anteriores.",
     "Quem tem BTC está sofrendo?": "Se quem tem BTC está no lucro, no prejuízo ou vendendo.",
     "Queda está perdendo força?": "Se a queda está desacelerando e o preço se afastou das médias.",
-    "Há medo no mercado?": "Medo extremo costuma aparecer perto dos fundos.",
+    "Há medo no mercado?": "Medo extremo costuma aparecer perto dos fundos. Dado do Fear & Greed Index, fornecido pela Alternative.me.",
 }
 
 st.subheader("As quatro perguntas que importam")
 st.caption("Cada pergunta vira uma nota de 0 a 100. Quanto maior, mais a resposta é 'sim'.")
 lens_columns = st.columns(4)
 for column, (name, members) in zip(lens_columns, LENSES.items()):
-    value = float(current.reindex(members).mean())
+    # "Preço está barato?" usa o mesmo numero do resumo (structural_score),
+    # em vez de recalcular com outro conjunto de indicadores, pra nao mostrar
+    # dois valores diferentes pra mesma pergunta em lugares diferentes do painel.
+    value = structural_score if name == "Preço está barato?" else float(current.reindex(members).mean())
     state, color = score_state(value)
     with column:
         st.markdown(f'<div class="lens"><div class="lens-title">{name}</div><div class="lens-score" style="color:{color}">{value:.0f} · {state}</div><div class="lens-text">{LENS_COPY[name]}</div></div>', unsafe_allow_html=True)
@@ -337,7 +340,9 @@ st.subheader("Para onde o preço pode ir (baseado em dias parecidos)")
 st.caption(
     "Isso NÃO é uma previsão. O painel procura, no último ano, dias em que a situação técnica (RSI, força do "
     "preço, distância das médias móveis) foi parecida com a de hoje, e mostra o que o preço fez de verdade "
-    "depois desses dias. É estatística de poucos casos, não uma bola de cristal."
+    "depois desses dias. Os dias escolhidos são forçados a vir de períodos diferentes entre si (não pega vários "
+    "dias seguidos do mesmo evento como se fossem casos separados). Amostra pequena — quando a margem de erro "
+    "cobre 50%, o painel marca como 'inconclusivo' em vez de fingir uma direção clara."
 )
 btc_price_hoje, _ = latest_value(df, "preco")
 analog = historical_analogs(df)
@@ -348,16 +353,25 @@ if analog:
         dado = analog["horizontes"].get(h)
         if not dado:
             continue
-        direcao = "↑ Alta" if dado["prob_alta"] >= 55 else ("↓ Queda" if dado["prob_alta"] <= 45 else "→ Neutro")
+        if dado["inconclusivo"]:
+            direcao = "? Inconclusivo"
+        elif dado["prob_alta"] > 50:
+            direcao = "↑ Alta"
+        else:
+            direcao = "↓ Queda"
         linhas_previsao.append({
             "Prazo": label,
-            "Direção mais provável": direcao,
-            "Subiu em % dos casos parecidos": f"{dado['prob_alta']:.0f}%",
+            "Direção": direcao,
+            "Subiu em % dos casos (intervalo de confiança)": f"{dado['prob_alta']:.0f}% ({dado['prob_alta_ic_baixo']:.0f}–{dado['prob_alta_ic_alto']:.0f}%)",
             "Preço-alvo estimado": f"US$ {dado['preco_alvo_medio']:,.0f}",
-            "Casos analisados": dado["n_amostras"],
+            "Episódios independentes": dado["n_amostras"],
         })
-    st.caption(f"Preço de hoje: US$ {btc_price_hoje:,.0f}")
+    st.caption(f"Preço de hoje: US$ {btc_price_hoje:,.0f} · {analog['n_episodios']} episódios históricos independentes usados na comparação")
     st.dataframe(pd.DataFrame(linhas_previsao), width="stretch", hide_index=True)
+    st.caption(
+        "O intervalo entre parênteses é a faixa onde a % real provavelmente está (95% de confiança, método de "
+        "Wilson). Quando essa faixa cruza 50%, não dá pra afirmar uma direção — por isso 'inconclusivo'."
+    )
 
     dado_7d = analog["horizontes"].get(7)
     if dado_7d and dado_7d.get("exemplos"):
@@ -430,13 +444,13 @@ readiness = purchase_readiness(market_entry_score, as_of, window_start, window_e
 
 i1, i2, i3, i4 = st.columns(4)
 with i1:
-    capital_brl = st.number_input("Quanto você tem para investir (R$)", min_value=100.0, value=10000.0, step=1000.0)
+    capital_brl = st.number_input("Quanto você tem para investir (R$)", min_value=100.0, max_value=100_000_000.0, value=10000.0, step=1000.0)
 with i2:
     strategy = st.selectbox("Seu jeito de investir", ["Conservador", "Balanceado", "Agressivo"], index=1,
                             help="Conservador compra menos agora e guarda mais para depois. Agressivo faz o contrário.")
 with i3:
     default_window_price = round(cycle_repeat["bottom_price"], -2)
-    window_price = st.number_input("Preço que você acha que o BTC vai ter no fundo (US$)", min_value=1000.0, value=float(default_window_price), step=1000.0)
+    window_price = st.number_input("Preço que você acha que o BTC vai ter no fundo (US$)", min_value=1000.0, max_value=10_000_000.0, value=float(default_window_price), step=1000.0)
 with i4:
     fee_pct = st.number_input("Taxa que a corretora cobra (%)", min_value=0.0, max_value=5.0, value=0.5, step=0.1)
 
@@ -453,13 +467,14 @@ r4.metric("Preço médio que você pagaria", f"US$ {dca['effective_entry_usd']:,
 st.markdown("#### Como dividir suas compras")
 st.caption("Se a nota estiver baixa (abaixo de 60), o simulador compra menos agora e guarda mais para depois. Se estiver alta (acima de 80), compra mais agora. Entre os dois, segue o jeito de investir que você escolheu. Essa conta é refeita todo dia.")
 plan_df = pd.DataFrame(dca["rows"])
+plan_df["Aporte (R$)"] = plan_df["Aporte (R$)"].map(brl)
 st.dataframe(
     plan_df,
     hide_index=True,
     width="stretch",
     column_config={
         "%": st.column_config.NumberColumn("Quanto do total", format="%.0f%%"),
-        "Aporte (R$)": st.column_config.NumberColumn("Valor a investir", format="R$ %.2f"),
+        "Aporte (R$)": st.column_config.TextColumn("Valor a investir"),
         "BTC estimado": st.column_config.NumberColumn("BTC que você compra", format="%.6f"),
         "Preço assumido (US$)": st.column_config.NumberColumn("Preço usado na conta", format="US$ %.0f"),
     },
@@ -483,6 +498,8 @@ targets = [
 ]
 exit_rows = simulate_exits(dca["btc"], capital_brl, future_fx, targets)
 exit_df = pd.DataFrame(exit_rows)
+exit_df["Valor estimado (R$)"] = exit_df["Valor estimado (R$)"].map(brl)
+exit_df["Lucro bruto (R$)"] = exit_df["Lucro bruto (R$)"].map(brl)
 
 st.markdown("#### Quanto seu dinheiro poderia virar")
 value_cols = st.columns(4)
@@ -499,8 +516,8 @@ st.dataframe(
         "Cenário": st.column_config.TextColumn("Se acontecer isso"),
         "Preço BTC (US$)": st.column_config.NumberColumn("BTC valendo", format="US$ %.0f"),
         "Horizonte": st.column_config.TextColumn("Quando"),
-        "Valor estimado (R$)": st.column_config.NumberColumn("Você teria", format="R$ %.2f"),
-        "Lucro bruto (R$)": st.column_config.NumberColumn("Lucro", format="R$ %.2f"),
+        "Valor estimado (R$)": st.column_config.TextColumn("Você teria"),
+        "Lucro bruto (R$)": st.column_config.TextColumn("Lucro"),
         "Retorno": st.column_config.NumberColumn("Ganho", format="%.1f%%"),
     },
 )
