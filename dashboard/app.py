@@ -563,10 +563,13 @@ for z in zones:
         annotation_text=f"{z['alavancagem']}x {z['lado'].split()[0]}", annotation_position="left",
         annotation_font_size=10,
     )
+y_min = min([btc_price] + [z["preco"] for z in zones]) * 0.97
+y_max = max([btc_price] + [z["preco"] for z in zones]) * 1.03
 liq_fig.update_layout(
     height=380, margin={"l": 20, "r": 20, "t": 20, "b": 20},
     paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color": "#cbd5e1"},
-    xaxis={"visible": False}, yaxis={"title": "Preço estimado da zona (US$)"},
+    xaxis={"visible": False, "range": [0, 1]},
+    yaxis={"title": "Preço estimado da zona (US$)", "range": [y_min, y_max]},
     showlegend=False,
 )
 st.plotly_chart(liq_fig, width="stretch")
