@@ -541,8 +541,22 @@ t1, t2, t3, t4 = st.columns(4)
 t1.metric("Cycle Repeat · possível topo", f"US$ {cycle_repeat['top_price']:,.0f}", cycle_repeat["top_date"].strftime("%m/%Y"))
 t2.metric("Teto atual do Power Law", f"US$ {cycle_repeat['current_power_upper']:,.0f}")
 t3.metric("Média de 2 anos × 5", f"US$ {cycle_repeat['current_ma730x5']:,.0f}")
-t4.metric("Pi Cycle hoje", pi_label, f"distância {pi_gap:.1f}%")
-st.caption("Pi Cycle no cenário repetido: " + (scenario_cross.strftime("cruzaria em %m/%Y") if scenario_cross else "não cruza durante os próximos 1.458 dias."))
+t4.metric(
+    "Pi Cycle hoje", pi_label, f"faltam {pi_gap:.1f}%",
+    help=(
+        "O Pi Cycle compara duas médias do preço: uma rápida (111 dias) e uma lenta, dobrada "
+        "(350 dias × 2). Nas ultimas vezes, quando a rápida cruzou pra cima da lenta, isso "
+        "bateu bem perto do topo do ciclo. Hoje a média rápida ainda está "
+        f"{pi_gap:.1f}% abaixo da lenta — quando chegar a 0%, é o alerta."
+    ),
+)
+st.caption(
+    "Pi Cycle é só sobre topo, não sobre fundo. "
+    + ("No cenário de repetição dos últimos 1.458 dias, cruzaria em "
+       + scenario_cross.strftime("%m/%Y") + "."
+       if scenario_cross else
+       "No cenário de repetição dos últimos 1.458 dias, não chega a cruzar nos próximos 4 anos.")
+)
 
 u1, u2, u3 = st.columns(3)
 if terminal_price is not None:
@@ -653,13 +667,42 @@ with tab_pi:
     st.info("O Pi Cycle dá alerta quando a média de 111 dias cruza para cima de duas vezes a média de 350 dias. Ele procura topo, não fundo.")
 
 with st.expander("Para quem quiser ver a conta por trás"):
-    a, b, c, d = st.columns(4)
+    a, b, c = st.columns(3)
     price, _ = latest_value(df, "preco")
     a.metric("Bitcoin agora", f"${price:,.0f}" if price else "N/D")
-    b.metric("Data provável pela conta do halving", f"{projection['halving']['central']:%d/%m/%Y}")
-    c.metric("Data provável pela conta do topo", f"{projection['top']['central']:%d/%m/%Y}")
+    b.metric(
+        "Data provável pela conta do halving", f"{projection['halving']['central']:%d/%m/%Y}",
+        help="Último halving (20/04/2024) + a média de dias que levou do halving até o fundo nos 3 ciclos anteriores.",
+    )
+    c.metric(
+        "Data provável pela conta do topo", f"{projection['top']['central']:%d/%m/%Y}",
+        help="Maior preço deste ciclo até agora + a média de dias que levou do topo até o fundo seguinte nos 3 ciclos anteriores.",
+    )
+
     next_cross = projection["next_crossing"]
-    d.metric("Próximo cruzamento de médias", f"{projection['next_crossing_pair']} · {next_cross:%d/%m/%Y}" if next_cross else "N/D")
+    next_pair = projection["next_crossing_pair"]
+    if next_cross and next_pair:
+        direction = projection["crossings"].get(next_pair, {}).get("direction")
+        semanas_curta, semanas_longa = next_pair.split("/")
+        sentido = "sobe acima" if direction == "alta" else "desce abaixo"
+        st.metric(
+            "Próximo cruzamento de médias semanais", f"{next_cross:%d/%m/%Y}",
+            help=(
+                f"É quando a média de {semanas_curta} semanas de preço deve cruzar a de "
+                f"{semanas_longa} semanas: a rápida ({semanas_curta} sem.) {sentido} da lenta "
+                f"({semanas_longa} sem.). Cruzamento pra cima costuma ser sinal de alta; pra "
+                "baixo, de baixa. É uma projeção simples, supondo que as médias continuem no "
+                "ritmo atual — pode não se confirmar."
+            ),
+        )
+        st.caption(
+            f"Médias de {semanas_curta} e {semanas_longa} semanas, projetando pra frente no "
+            "ritmo de inclinação das últimas 8 semanas de cada uma."
+        )
+    else:
+        st.metric("Próximo cruzamento de médias semanais", "Nenhum previsto")
+        st.caption("Nas médias semanais acompanhadas (50, 100 e 200 semanas), nenhum cruzamento aparece nos próximos ~1,5 ano no ritmo atual.")
+
     st.markdown("""
 **Como a nota é calculada.** Cada indicador vira uma nota de 0 a 100, comparando o valor de hoje com os
 valores que ele teve nos fundos anteriores. Depois tiramos uma média — alguns indicadores pesam mais que
