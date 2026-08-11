@@ -537,7 +537,7 @@ with c2:
 
 st.subheader("Zonas estimadas de liquidação")
 oi_usd, _ = latest_value(df, "open_interest_usd")
-ls_ratio, _ = latest_value(df, "long_short_ratio")
+funding_rate, _ = latest_value(df, "funding_rate")
 st.caption(
     "Onde uma massa de posições alavancadas pode ser forçada a fechar se o preço bater ali. "
     "Não é o mapa de calor real da corretora (esse é dado pago e fechado) — é uma conta feita a partir do preço "
@@ -573,21 +573,22 @@ st.plotly_chart(liq_fig, width="stretch")
 
 lz1, lz2 = st.columns(2)
 lz1.metric(
-    "Dinheiro alavancado em aberto (Bybit)",
+    "Dinheiro alavancado em aberto (Binance)",
     f"US$ {oi_usd/1e9:.2f} bi" if oi_usd else "N/D",
     help=(
         "Open Interest: soma de todas as posições com alavancagem ainda abertas no futuro perpétuo de BTC "
-        "na Bybit. Quanto maior, mais dinheiro alavancado pode virar liquidação forçada se o preço se mover forte."
+        "na Binance. Quanto maior, mais dinheiro alavancado pode virar liquidação forçada se o preço se mover forte."
     ),
 )
-if ls_ratio:
-    lado_maioria = "comprados (apostando em alta)" if ls_ratio > 1 else "vendidos (apostando em baixa)"
+if funding_rate is not None:
+    lado_maioria = "comprados, pagando pra manter a posição (alta)" if funding_rate > 0 else "vendidos, pagando pra manter a posição (baixa)"
     lz2.metric(
-        "Maioria das contas está", lado_maioria, f"{ls_ratio:.2f}x",
+        "Maioria das contas está", lado_maioria, f"{funding_rate*100:.3f}% / 8h",
         help=(
-            "Proporção de contas compradas vs vendidas nos futuros da Bybit. Acima de 1x, tem mais gente "
-            "comprada; abaixo de 1x, mais gente vendida. Muita gente do mesmo lado é o combustível para uma "
-            "liquidação em cadeia se o preço for contra a maioria."
+            "Funding rate: taxa que quem está de um lado paga pra quem está do outro, a cada 8h, no futuro "
+            "perpétuo. Positiva = mais gente comprada pagando pra segurar a posição (mercado inclinado pra alta). "
+            "Negativa = mais gente vendida pagando (mercado inclinado pra baixa). Muita gente do mesmo lado é "
+            "o combustível para uma liquidação em cadeia se o preço for contra a maioria."
         ),
     )
 else:

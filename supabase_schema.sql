@@ -24,7 +24,7 @@ create table if not exists bottom_indicators (
     gm_x2 numeric,
     gm_x2618 numeric,
     open_interest_usd numeric,
-    long_short_ratio numeric,
+    funding_rate numeric,
     ultimo_halving date,
     dias_desde_halving integer,
     fundo_estimado date,
