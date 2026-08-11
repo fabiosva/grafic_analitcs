@@ -150,21 +150,33 @@ def historical_analogs(df: pd.DataFrame, k: int = 20, horizons=(3, 7, 14, 30)) -
     resultados = {}
     for h in horizons:
         retornos = []
+        exemplos = []
         for pos in nearest:
             futuro_pos = pos + h
             if futuro_pos < len(work):
                 preco_agora = price.iloc[pos]
                 preco_futuro = price.iloc[futuro_pos]
                 if pd.notna(preco_agora) and pd.notna(preco_futuro) and preco_agora > 0:
-                    retornos.append((preco_futuro / preco_agora - 1) * 100)
+                    variacao = (preco_futuro / preco_agora - 1) * 100
+                    retornos.append(variacao)
+                    exemplos.append({
+                        "data": work["data"].iloc[pos],
+                        "preco_na_epoca": float(preco_agora),
+                        "preco_depois": float(preco_futuro),
+                        "variacao_pct": float(variacao),
+                    })
         if not retornos:
             continue
         retornos = np.array(retornos)
+        preco_hoje = float(price.iloc[today_pos])
         resultados[h] = {
             "prob_alta": float((retornos > 0).mean() * 100),
             "retorno_medio_pct": float(retornos.mean()),
             "retorno_mediano_pct": float(np.median(retornos)),
             "n_amostras": len(retornos),
+            "preco_alvo_medio": preco_hoje * (1 + retornos.mean() / 100),
+            "preco_alvo_mediano": preco_hoje * (1 + np.median(retornos) / 100),
+            "exemplos": sorted(exemplos, key=lambda e: e["data"], reverse=True),
         }
     if not resultados:
         return None

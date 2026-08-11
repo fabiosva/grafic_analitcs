@@ -317,34 +317,46 @@ with summary_right:
 </div>
 """, unsafe_allow_html=True)
 
-st.subheader("O que aconteceu em dias parecidos com hoje")
+st.subheader("Para onde o preço pode ir (baseado em dias parecidos)")
 st.caption(
-    "Isso NÃO é uma previsão. É um raio-x histórico: o painel pega o RSI, o StochRSI, o preço vs as médias "
-    "móveis e o quanto o preço está fora do normal (Z-Score de 90 dias) de hoje, e procura no histórico "
-    "disponível (cerca de 1 ano) os dias mais parecidos com esse conjunto. Depois olha o que o preço realmente "
-    "fez alguns dias após cada um desses dias parecidos. Amostra pequena e histórico curto — os dias parecidos "
-    "quase sempre vêm agrupados de poucos períodos recentes (não são casos independentes) — trate como um "
-    "contexto a mais, nunca como certeza."
+    "Isso NÃO é uma previsão. O painel procura, no último ano, dias em que a situação técnica (RSI, força do "
+    "preço, distância das médias móveis) foi parecida com a de hoje, e mostra o que o preço fez de verdade "
+    "depois desses dias. É estatística de poucos casos, não uma bola de cristal."
 )
+btc_price_hoje, _ = latest_value(df, "preco")
 analog = historical_analogs(df)
 if analog:
-    a1, a2, a3, a4 = st.columns(4)
     horizonte_labels = {3: "3 dias", 7: "7 dias", 14: "14 dias", 30: "30 dias"}
-    for coluna, (h, label) in zip((a1, a2, a3, a4), horizonte_labels.items()):
+    linhas_previsao = []
+    for h, label in horizonte_labels.items():
         dado = analog["horizontes"].get(h)
         if not dado:
             continue
-        with coluna:
-            cor = "#22c55e" if dado["prob_alta"] >= 55 else ("#ef4444" if dado["prob_alta"] <= 45 else "#94a3b8")
-            st.markdown(
-                f'<div class="lens"><div class="lens-title">Em {label}</div>'
-                f'<div class="lens-score" style="color:{cor}">{dado["prob_alta"]:.0f}% subiu</div>'
-                f'<div class="lens-text">Retorno médio: {dado["retorno_medio_pct"]:+.1f}% '
-                f'(mediana {dado["retorno_mediano_pct"]:+.1f}%) · {dado["n_amostras"]} dias parecidos analisados</div></div>',
-                unsafe_allow_html=True,
-            )
-    datas_fmt = ", ".join(pd.Timestamp(d).strftime("%m/%Y") for d in sorted(set(analog["datas_vizinhas"]))[:8])
-    st.caption(f"Os dias mais parecidos com hoje vieram de: {datas_fmt}" + ("…" if len(set(analog["datas_vizinhas"])) > 8 else ""))
+        direcao = "↑ Alta" if dado["prob_alta"] >= 55 else ("↓ Queda" if dado["prob_alta"] <= 45 else "→ Neutro")
+        linhas_previsao.append({
+            "Prazo": label,
+            "Direção mais provável": direcao,
+            "Subiu em % dos casos parecidos": f"{dado['prob_alta']:.0f}%",
+            "Preço-alvo estimado": f"US$ {dado['preco_alvo_medio']:,.0f}",
+            "Casos analisados": dado["n_amostras"],
+        })
+    st.caption(f"Preço de hoje: US$ {btc_price_hoje:,.0f}")
+    st.dataframe(pd.DataFrame(linhas_previsao), width="stretch", hide_index=True)
+
+    dado_7d = analog["horizontes"].get(7)
+    if dado_7d and dado_7d.get("exemplos"):
+        with st.expander("Ver os dias parecidos que embasam essa conta (olhando 7 dias à frente)"):
+            st.caption("Cada linha é um dia do passado parecido com hoje, o preço dele, e o preço 7 dias depois.")
+            tabela_exemplos = pd.DataFrame([
+                {
+                    "Dia parecido": pd.Timestamp(e["data"]).strftime("%d/%m/%Y"),
+                    "Preço na época": f"US$ {e['preco_na_epoca']:,.0f}",
+                    "Preço 7 dias depois": f"US$ {e['preco_depois']:,.0f}",
+                    "Variação": f"{e['variacao_pct']:+.1f}%",
+                }
+                for e in dado_7d["exemplos"]
+            ])
+            st.dataframe(tabela_exemplos, width="stretch", hide_index=True)
 else:
     st.caption("Ainda não há histórico suficiente com todos os dados necessários (RSI, StochRSI, médias móveis) para fazer essa comparação.")
 
