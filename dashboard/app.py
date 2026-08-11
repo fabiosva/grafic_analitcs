@@ -32,6 +32,7 @@ st.markdown("""
   .lens-title { font-size:.82rem; color:#94a3b8; }
   .lens-score { font-size:1.65rem; font-weight:800; margin:.25rem 0; }
   .lens-text { color:#cbd5e1; font-size:.84rem; line-height:1.35; }
+  .lens-scale { color:#64748b; font-size:.72rem; line-height:1.4; margin-top:8px; padding-top:8px; border-top:1px dashed #273449; }
   .window-card { border:1px solid #1d4ed8; background:linear-gradient(135deg,#111d3b,#0e1729); border-radius:15px; padding:20px; }
   .window-date { font-size:1.65rem; font-weight:800; margin:.35rem 0; }
   .bucket { border:1px solid #273449; border-radius:14px; padding:15px; background:#0f172a; min-height:215px; }
@@ -318,6 +319,12 @@ LENS_COPY = {
     "Queda está perdendo força?": "Se a queda está desacelerando e o preço se afastou das médias.",
     "Há medo no mercado?": "Medo extremo costuma aparecer perto dos fundos. Dado do Fear & Greed Index, fornecido pela Alternative.me.",
 }
+LENS_SCALE = {
+    "Preço está barato?": ("0 = preço caro, sem desconto", "100 = muito barato, ótimo momento"),
+    "Quem tem BTC está sofrendo?": ("0 = quase todo mundo no lucro", "100 = muita gente no prejuízo"),
+    "Queda está perdendo força?": ("0 = queda ainda forte", "100 = queda esgotada, sinais de virada"),
+    "Há medo no mercado?": ("0 = mercado ganancioso", "100 = medo extremo"),
+}
 
 st.subheader("As quatro perguntas que importam")
 st.caption("Cada pergunta vira uma nota de 0 a 100. Quanto maior, mais a resposta é 'sim'.")
@@ -328,8 +335,15 @@ for column, (name, members) in zip(lens_columns, LENSES.items()):
     # dois valores diferentes pra mesma pergunta em lugares diferentes do painel.
     value = structural_score if name == "Preço está barato?" else float(current.reindex(members).mean())
     state, color = score_state(value)
+    escala_baixa, escala_alta = LENS_SCALE[name]
     with column:
-        st.markdown(f'<div class="lens"><div class="lens-title">{name}</div><div class="lens-score" style="color:{color}">{value:.0f} · {state}</div><div class="lens-text">{LENS_COPY[name]}</div></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="lens"><div class="lens-title">{name}</div>'
+            f'<div class="lens-score" style="color:{color}">{value:.0f} · {state}</div>'
+            f'<div class="lens-text">{LENS_COPY[name]}</div>'
+            f'<div class="lens-scale">{escala_baixa}<br>{escala_alta}</div></div>',
+            unsafe_allow_html=True,
+        )
 
 summary_left, summary_right = st.columns([1.35, 1])
 with summary_left:
