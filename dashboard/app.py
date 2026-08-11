@@ -535,6 +535,70 @@ with c2:
         unsafe_allow_html=True,
     )
 
+st.subheader("Zonas estimadas de liquidação")
+oi_usd, _ = latest_value(df, "open_interest_usd")
+ls_ratio, _ = latest_value(df, "long_short_ratio")
+st.caption(
+    "Onde uma massa de posições alavancadas pode ser forçada a fechar se o preço bater ali. "
+    "Não é o mapa de calor real da corretora (esse é dado pago e fechado) — é uma conta feita a partir do preço "
+    "de hoje e das alavancagens mais usadas na Binance (5x a 100x). Quanto mais alavancagem, mais perto do preço "
+    "atual fica a zona de risco."
+)
+
+LEVERAGE_TIERS = [5, 10, 25, 50, 100]
+zones = []
+for lev in LEVERAGE_TIERS:
+    zones.append({"lado": "Comprados (long)", "alavancagem": lev, "preco": btc_price * (1 - 1 / lev)})
+    zones.append({"lado": "Vendidos (short)", "alavancagem": lev, "preco": btc_price * (1 + 1 / lev)})
+
+liq_fig = go.Figure()
+liq_fig.add_hline(y=btc_price, line_color="#f8fafc", line_width=2,
+                   annotation_text=f"Preço agora · US$ {btc_price:,.0f}", annotation_position="right")
+for z in zones:
+    cor = "#ef4444" if z["lado"].startswith("Comprados") else "#22c55e"
+    # alavancagens altas ficam mais "quentes" (mais perto do preço, liquidam com um movimento menor)
+    intensidade = 1 - (LEVERAGE_TIERS.index(z["alavancagem"]) / len(LEVERAGE_TIERS)) * 0.7
+    liq_fig.add_hline(
+        y=z["preco"], line_color=cor, line_width=1 + intensidade * 3, opacity=0.35 + intensidade * 0.5,
+        annotation_text=f"{z['alavancagem']}x {z['lado'].split()[0]}", annotation_position="left",
+        annotation_font_size=10,
+    )
+liq_fig.update_layout(
+    height=380, margin={"l": 20, "r": 20, "t": 20, "b": 20},
+    paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color": "#cbd5e1"},
+    xaxis={"visible": False}, yaxis={"title": "Preço estimado da zona (US$)"},
+    showlegend=False,
+)
+st.plotly_chart(liq_fig, width="stretch")
+
+lz1, lz2 = st.columns(2)
+lz1.metric(
+    "Dinheiro alavancado em aberto (Binance)",
+    f"US$ {oi_usd/1e9:.2f} bi" if oi_usd else "N/D",
+    help=(
+        "Open Interest: soma de todas as posições com alavancagem ainda abertas no futuro perpétuo de BTC "
+        "da Binance. Quanto maior, mais dinheiro alavancado pode virar liquidação forçada se o preço se mover forte."
+    ),
+)
+if ls_ratio:
+    lado_maioria = "comprados (apostando em alta)" if ls_ratio > 1 else "vendidos (apostando em baixa)"
+    lz2.metric(
+        "Maioria das contas está", lado_maioria, f"{ls_ratio:.2f}x",
+        help=(
+            "Proporção de contas compradas vs vendidas nos futuros da Binance. Acima de 1x, tem mais gente "
+            "comprada; abaixo de 1x, mais gente vendida. Muita gente do mesmo lado é o combustível para uma "
+            "liquidação em cadeia se o preço for contra a maioria."
+        ),
+    )
+else:
+    lz2.metric("Maioria das contas está", "N/D")
+st.caption(
+    "Se o preço cair até perto de uma linha vermelha, gente comprada com aquela alavancagem é liquidada "
+    "à força (venda forçada, empurra o preço mais pra baixo ainda). Se subir até uma linha verde, é o "
+    "inverso com quem está vendido. Fundos de mercado às vezes acontecem quando essa venda forçada "
+    "some — os que iam vender à força já venderam."
+)
+
 st.subheader("Alertas de topo e planejamento de saída")
 st.caption("Esta parte é somente sobre possível topo. Ela não entra na confirmação de fundo de hoje.")
 t1, t2, t3, t4 = st.columns(4)

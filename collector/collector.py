@@ -12,6 +12,11 @@ from datetime import datetime, timezone, timedelta
 BD_BASE = "https://bitcoin-data.com/v1"
 FNG_URL = "https://api.alternative.me/fng/?limit=1"
 COINBASE_URL = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
+BINANCE_OI_URL = "https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT"
+BINANCE_LS_RATIO_URL = (
+    "https://fapi.binance.com/futures/data/globalLongShortAccountRatio"
+    "?symbol=BTCUSDT&period=1d&limit=1"
+)
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -120,6 +125,32 @@ def fetch_price():
         return float(r.json()["data"]["amount"])
     except Exception as e:
         print(f"Erro preco: {e}")
+        return None
+
+
+def fetch_open_interest(preco: float | None):
+    """Dinheiro alavancado em aberto no futuro perpetuo de BTC na Binance (USD)."""
+    if not preco:
+        return None
+    try:
+        r = requests.get(BINANCE_OI_URL, timeout=15)
+        r.raise_for_status()
+        contratos = float(r.json()["openInterest"])
+        return round(contratos * preco, 2)
+    except Exception as e:
+        print(f"Erro Open Interest: {e}")
+        return None
+
+
+def fetch_long_short_ratio():
+    """Proporcao de contas compradas vs vendidas no futuro perpetuo (Binance)."""
+    try:
+        r = requests.get(BINANCE_LS_RATIO_URL, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        return _num(data[-1]["longShortRatio"]) if data else None
+    except Exception as e:
+        print(f"Erro Long/Short Ratio: {e}")
         return None
 
 
@@ -274,6 +305,8 @@ def main():
         "rhodl_ratio": fetch_latest("rhodl-ratio", "rhodlRatio"),
         "fear_greed": fetch_fear_greed(),
     }
+    dados["open_interest_usd"] = fetch_open_interest(dados.get("preco"))
+    dados["long_short_ratio"] = fetch_long_short_ratio()
 
     try:
         r = requests.get(f"{BD_BASE}/technical-indicators", timeout=15)
