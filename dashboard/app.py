@@ -583,7 +583,7 @@ lz1.metric(
 if funding_rate is not None:
     lado_maioria = "comprados, pagando pra manter a posição (alta)" if funding_rate > 0 else "vendidos, pagando pra manter a posição (baixa)"
     lz2.metric(
-        "Maioria das contas está", lado_maioria, f"{funding_rate*100:.3f}% / 8h",
+        "Maioria das contas está", lado_maioria, f"{funding_rate:.4f}% / 8h",
         help=(
             "Funding rate: taxa que quem está de um lado paga pra quem está do outro, a cada 8h, no futuro "
             "perpétuo. Positiva = mais gente comprada pagando pra segurar a posição (mercado inclinado pra alta). "
