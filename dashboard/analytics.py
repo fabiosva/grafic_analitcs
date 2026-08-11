@@ -37,6 +37,9 @@ INDICATORS = {
     "return_30d_pct": ("Retorno 30 dias", 0.5, [-40, -20, 0, 30], [100, 80, 40, 0]),
     "price_zscore_90d": ("Z-Score preço 90d", 0.5, [-2.5, -1.5, 0, 2], [100, 80, 40, 0]),
     "macd_hist_pct": ("MACD normalizado", 0.5, [-3, -1, 0, 3], [100, 80, 45, 0]),
+    "sth_mvrv": ("STH-MVRV", 1.0, [0.7, 0.85, 1.5, 2.0], [100, 90, 30, 0]),
+    "aviv": ("AVIV Ratio", 1.0, [0.4, 0.6, 2.0, 2.5], [100, 85, 25, 0]),
+    "vdd_multiple": ("VDD Multiple", 0.75, [0.3, 0.75, 2.9, 4.0], [100, 85, 20, 0]),
 }
 
 

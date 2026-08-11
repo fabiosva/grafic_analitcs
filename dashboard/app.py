@@ -117,6 +117,9 @@ PLAIN = {
     "MACD normalizado": "A tendência está virando? (MACD)",
     "Preço vs média de 2 anos": "Preço vs média de 2 anos",
     "Preço vs Power Law": "Preço vs corredor de longo prazo",
+    "STH-MVRV": "Quem comprou recente está no lucro? (STH-MVRV)",
+    "AVIV Ratio": "Preço vs custo de quem está ativo (AVIV)",
+    "VDD Multiple": "Moedas antigas sendo movimentadas (VDD)",
 }
 
 
@@ -507,8 +510,10 @@ for row_levels in rows:
         with column:
             price_level_card(level[0], level[1], btc_price, level[2])
 
+sth_realized_price, _ = latest_value(df, "sth_realized_price")
+
 clock = projection["clock_1064_365"]
-c1, c2 = st.columns(2)
+c1, c2, c3 = st.columns(3)
 with c1:
     st.markdown(
         f'<div class="lens"><div class="lens-title">Relógio 1064/365 · somente data</div>'
@@ -534,6 +539,29 @@ with c2:
         f'<div class="lens-text">{hr_detail}</div></div>',
         unsafe_allow_html=True,
     )
+with c3:
+    if sth_realized_price is not None and lth_realized_price is not None:
+        virou = sth_realized_price < lth_realized_price
+        if virou:
+            cross_color, cross_text = "#22c55e", "● QUEM COMPROU RECENTE PAGOU MENOS"
+            cross_detail = "O custo médio de quem comprou nos últimos meses caiu abaixo do custo de quem segura há anos. Isso historicamente marca o fundo de um mercado em baixa — a alavancagem fraca já foi eliminada."
+        else:
+            cross_color, cross_text = "#94a3b8", "● SEM CRUZAMENTO"
+            cross_detail = "Quem comprou recente ainda paga mais caro que quem segura há anos. Esse cruzamento (quando o custo de quem comprou recente cai abaixo do de quem segura há anos) costuma marcar fundos de mercado em baixa."
+        st.markdown(
+            f'<div class="lens"><div class="lens-title">Custo de quem comprou recente vs quem segura há anos</div>'
+            f'<div class="lens-score">US$ {sth_realized_price:,.0f}</div>'
+            f'<div style="color:{cross_color};font-weight:800;margin-bottom:7px">{cross_text}</div>'
+            f'<div class="lens-text">{cross_detail}</div></div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="lens"><div class="lens-title">Custo de quem comprou recente vs quem segura há anos</div>'
+            '<div class="lens-score">N/D</div>'
+            '<div class="lens-text">Ainda sem dado suficiente (esse indicador roda em rodízio, chega a cada poucos dias).</div></div>',
+            unsafe_allow_html=True,
+        )
 
 st.subheader("Zonas estimadas de liquidação")
 oi_usd, _ = latest_value(df, "open_interest_usd")

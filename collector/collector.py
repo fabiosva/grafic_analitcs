@@ -41,6 +41,12 @@ EXTRAS = [
     ("golden-ratio-multiplier", {
         "gm_sma350": "sma350", "gm_x16": "x16", "gm_x2": "x2", "gm_x2618": "x2618",
     }),
+    ("sth-mvrv", {"sth_mvrv": "sthMvrv"}),
+    ("sth-mvrv-momentum", {"sth_mvrv_momentum": "sthMvrvMomentum"}),
+    ("vdd-multiple", {"vdd_multiple": "vddMultiple"}),
+    ("aviv", {"aviv": "aviv"}),
+    ("sth-lth-ratio", {"sth_lth_ratio": "sthLthRatio"}),
+    ("sth-realized-price", {"sth_realized_price": "sthRealizedPrice"}),
 ]
 EXTRAS_POR_DIA = 2
 
