@@ -12,10 +12,13 @@ from datetime import datetime, timezone, timedelta
 BD_BASE = "https://bitcoin-data.com/v1"
 FNG_URL = "https://api.alternative.me/fng/?limit=1"
 COINBASE_URL = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
-BINANCE_OI_URL = "https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT"
-BINANCE_LS_RATIO_URL = (
-    "https://fapi.binance.com/futures/data/globalLongShortAccountRatio"
-    "?symbol=BTCUSDT&period=1d&limit=1"
+BYBIT_OI_URL = (
+    "https://api.bybit.com/v5/market/open-interest"
+    "?category=linear&symbol=BTCUSDT&intervalTime=1d&limit=1"
+)
+BYBIT_LS_RATIO_URL = (
+    "https://api.bybit.com/v5/market/account-ratio"
+    "?category=linear&symbol=BTCUSDT&period=1d&limit=1"
 )
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
@@ -129,26 +132,31 @@ def fetch_price():
 
 
 def fetch_open_interest(preco: float | None):
-    """Dinheiro alavancado em aberto no futuro perpetuo de BTC na Binance (USD)."""
+    """Dinheiro alavancado em aberto no futuro perpetuo de BTC (USD). Fonte: Bybit
+    (a Binance bloqueia com HTTP 451 os IPs dos runners do GitHub Actions)."""
     if not preco:
         return None
     try:
-        r = requests.get(BINANCE_OI_URL, timeout=15)
+        r = requests.get(BYBIT_OI_URL, timeout=15)
         r.raise_for_status()
-        contratos = float(r.json()["openInterest"])
-        return round(contratos * preco, 2)
+        lista = r.json()["result"]["list"]
+        contratos = float(lista[0]["openInterest"]) if lista else None
+        return round(contratos * preco, 2) if contratos else None
     except Exception as e:
         print(f"Erro Open Interest: {e}")
         return None
 
 
 def fetch_long_short_ratio():
-    """Proporcao de contas compradas vs vendidas no futuro perpetuo (Binance)."""
+    """Proporcao de contas compradas vs vendidas no futuro perpetuo (Bybit)."""
     try:
-        r = requests.get(BINANCE_LS_RATIO_URL, timeout=15)
+        r = requests.get(BYBIT_LS_RATIO_URL, timeout=15)
         r.raise_for_status()
-        data = r.json()
-        return _num(data[-1]["longShortRatio"]) if data else None
+        lista = r.json()["result"]["list"]
+        if not lista:
+            return None
+        buy, sell = _num(lista[0]["buyRatio"]), _num(lista[0]["sellRatio"])
+        return round(buy / sell, 4) if buy is not None and sell else None
     except Exception as e:
         print(f"Erro Long/Short Ratio: {e}")
         return None

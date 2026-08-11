@@ -541,7 +541,7 @@ ls_ratio, _ = latest_value(df, "long_short_ratio")
 st.caption(
     "Onde uma massa de posições alavancadas pode ser forçada a fechar se o preço bater ali. "
     "Não é o mapa de calor real da corretora (esse é dado pago e fechado) — é uma conta feita a partir do preço "
-    "de hoje e das alavancagens mais usadas na Binance (5x a 100x). Quanto mais alavancagem, mais perto do preço "
+    "de hoje e das alavancagens mais usadas em corretoras de futuros (5x a 100x). Quanto mais alavancagem, mais perto do preço "
     "atual fica a zona de risco."
 )
 
@@ -573,11 +573,11 @@ st.plotly_chart(liq_fig, width="stretch")
 
 lz1, lz2 = st.columns(2)
 lz1.metric(
-    "Dinheiro alavancado em aberto (Binance)",
+    "Dinheiro alavancado em aberto (Bybit)",
     f"US$ {oi_usd/1e9:.2f} bi" if oi_usd else "N/D",
     help=(
         "Open Interest: soma de todas as posições com alavancagem ainda abertas no futuro perpétuo de BTC "
-        "da Binance. Quanto maior, mais dinheiro alavancado pode virar liquidação forçada se o preço se mover forte."
+        "na Bybit. Quanto maior, mais dinheiro alavancado pode virar liquidação forçada se o preço se mover forte."
     ),
 )
 if ls_ratio:
@@ -585,7 +585,7 @@ if ls_ratio:
     lz2.metric(
         "Maioria das contas está", lado_maioria, f"{ls_ratio:.2f}x",
         help=(
-            "Proporção de contas compradas vs vendidas nos futuros da Binance. Acima de 1x, tem mais gente "
+            "Proporção de contas compradas vs vendidas nos futuros da Bybit. Acima de 1x, tem mais gente "
             "comprada; abaixo de 1x, mais gente vendida. Muita gente do mesmo lado é o combustível para uma "
             "liquidação em cadeia se o preço for contra a maioria."
         ),
