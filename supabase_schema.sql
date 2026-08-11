@@ -48,3 +48,29 @@ alter table bottom_indicators enable row level security;
 create policy "Leitura publica" on bottom_indicators for select using (true);
 create policy "Insercao via service key" on bottom_indicators for insert with check (true);
 create policy "Update via service key" on bottom_indicators for update using (true);
+
+-- Placar de acertos: um palpite por (dia em que foi feito, prazo em dias).
+-- Gravado no dia da previsao com preco_real/etc nulos; preenchido depois,
+-- quando data_alvo chega, pelo proprio coletor.
+create table if not exists previsoes (
+    data_previsao date not null,
+    prazo_dias integer not null,
+    data_alvo date not null,
+    direcao_prevista text,
+    prob_alta numeric,
+    preco_no_dia numeric,
+    preco_alvo_estimado numeric,
+    n_amostras integer,
+    preco_real numeric,
+    direcao_correta boolean,
+    alvo_batido boolean,
+    variacao_real_pct numeric,
+    avaliado_em timestamptz,
+    criado_em timestamptz,
+    primary key (data_previsao, prazo_dias)
+);
+
+alter table previsoes enable row level security;
+create policy "Leitura publica previsoes" on previsoes for select using (true);
+create policy "Insercao previsoes" on previsoes for insert with check (true);
+create policy "Update previsoes" on previsoes for update using (true);

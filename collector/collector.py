@@ -6,8 +6,14 @@ Fontes 100% gratuitas: bitcoin-data.com, alternative.me, coinbase
 import requests
 import json
 import os
+import sys
 import time
 from datetime import datetime, timezone, timedelta
+
+import pandas as pd
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "dashboard"))
+from analytics import historical_analogs  # noqa: E402
 
 BD_BASE = "https://bitcoin-data.com/v1"
 FNG_URL = "https://api.alternative.me/fng/?limit=1"
@@ -286,6 +292,149 @@ def salvar_supabase(registro: dict):
         print("Salvo no Supabase com sucesso.")
 
 
+def fetch_history_df():
+    """Busca o historico completo (data, preco, RSI, medias moveis) do Supabase."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return None
+    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+    url = (
+        f"{SUPABASE_URL}/rest/v1/bottom_indicators"
+        "?select=data,preco,rsi,stoch_rsi_k,sma50,sma200&order=data.asc"
+    )
+    try:
+        r = requests.get(url, headers=headers, timeout=30)
+        r.raise_for_status()
+        registros = r.json()
+        if not registros:
+            return None
+        df = pd.DataFrame(registros)
+        return df.dropna(subset=["data"]).sort_values("data").reset_index(drop=True)
+    except Exception as e:
+        print(f"Erro ao buscar historico para previsoes: {e}")
+        return None
+
+
+def registrar_previsoes(agora: datetime, df: pd.DataFrame):
+    """Roda o mesmo raio-x de dias parecidos do painel e grava o palpite de hoje."""
+    if df is None or len(df) < 50:
+        print("Historico insuficiente para gerar previsoes hoje.")
+        return
+    analog = historical_analogs(df)
+    if not analog:
+        print("Sem dias parecidos suficientes para gerar previsoes hoje.")
+        return
+
+    hoje_str = agora.strftime("%Y-%m-%d")
+    linhas = []
+    for prazo_dias, dado in analog["horizontes"].items():
+        data_alvo = (agora + timedelta(days=prazo_dias)).strftime("%Y-%m-%d")
+        if dado["prob_alta"] >= 55:
+            direcao = "Alta"
+        elif dado["prob_alta"] <= 45:
+            direcao = "Queda"
+        else:
+            direcao = "Neutro"
+        linhas.append({
+            "data_previsao": hoje_str,
+            "prazo_dias": prazo_dias,
+            "data_alvo": data_alvo,
+            "direcao_prevista": direcao,
+            "prob_alta": round(dado["prob_alta"], 1),
+            "preco_no_dia": round(float(df["preco"].iloc[-1]), 2),
+            "preco_alvo_estimado": round(dado["preco_alvo_medio"], 2),
+            "n_amostras": dado["n_amostras"],
+            "criado_em": agora.isoformat(),
+        })
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates",
+    }
+    url = f"{SUPABASE_URL}/rest/v1/previsoes"
+    r = requests.post(url, headers=headers, json=linhas, timeout=15)
+    if r.status_code not in (200, 201):
+        print(f"Erro ao salvar previsoes: {r.status_code} {r.text}")
+    else:
+        print(f"Previsoes de hoje gravadas ({len(linhas)} prazos).")
+
+
+def avaliar_previsoes_vencidas(agora: datetime, df: pd.DataFrame):
+    """Confere palpites cuja data_alvo ja chegou e ainda nao foram avaliados."""
+    if df is None or not SUPABASE_URL or not SUPABASE_KEY:
+        return
+    hoje_str = agora.strftime("%Y-%m-%d")
+    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+    url = (
+        f"{SUPABASE_URL}/rest/v1/previsoes"
+        f"?select=*&preco_real=is.null&data_alvo=lte.{hoje_str}"
+    )
+    try:
+        r = requests.get(url, headers=headers, timeout=15)
+        r.raise_for_status()
+        pendentes = r.json()
+    except Exception as e:
+        print(f"Erro ao buscar previsoes pendentes: {e}")
+        return
+    if not pendentes:
+        print("Nenhuma previsao pendente de avaliacao.")
+        return
+
+    preco_por_data = dict(zip(df["data"], df["preco"]))
+    datas_ordenadas = sorted(preco_por_data.keys())
+
+    def preco_mais_proximo(data_alvo: str):
+        # As fontes on-chain as vezes atrasam 1-2 dias; pega o ultimo preco
+        # conhecido em ou antes da data alvo.
+        candidatos = [d for d in datas_ordenadas if d <= data_alvo]
+        return preco_por_data[candidatos[-1]] if candidatos else None
+
+    patch_headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+    avaliadas = 0
+    for previsao in pendentes:
+        preco_real = preco_mais_proximo(previsao["data_alvo"])
+        if preco_real is None:
+            continue
+        preco_no_dia = previsao["preco_no_dia"]
+        preco_alvo = previsao["preco_alvo_estimado"]
+        variacao_real_pct = (preco_real / preco_no_dia - 1) * 100 if preco_no_dia else None
+        direcao_real = "Alta" if variacao_real_pct and variacao_real_pct > 0 else "Queda"
+        direcao_prevista = previsao["direcao_prevista"]
+        if direcao_prevista == "Neutro":
+            direcao_correta = variacao_real_pct is not None and abs(variacao_real_pct) < 2
+        else:
+            direcao_correta = direcao_prevista == direcao_real
+        if direcao_prevista == "Alta":
+            alvo_batido = preco_real >= preco_alvo
+        elif direcao_prevista == "Queda":
+            alvo_batido = preco_real <= preco_alvo
+        else:
+            alvo_batido = preco_alvo and abs(preco_real / preco_alvo - 1) < 0.02
+
+        update = {
+            "preco_real": round(preco_real, 2),
+            "direcao_correta": direcao_correta,
+            "alvo_batido": bool(alvo_batido),
+            "variacao_real_pct": round(variacao_real_pct, 2) if variacao_real_pct is not None else None,
+            "avaliado_em": agora.isoformat(),
+        }
+        patch_url = (
+            f"{SUPABASE_URL}/rest/v1/previsoes"
+            f"?data_previsao=eq.{previsao['data_previsao']}&prazo_dias=eq.{previsao['prazo_dias']}"
+        )
+        r = requests.patch(patch_url, headers=patch_headers, json=update, timeout=15)
+        if r.status_code not in (200, 204):
+            print(f"Erro ao avaliar previsao {previsao['data_previsao']}/{previsao['prazo_dias']}d: {r.status_code} {r.text}")
+        else:
+            avaliadas += 1
+    print(f"Previsoes avaliadas agora: {avaliadas}/{len(pendentes)}")
+
+
 def main():
     agora = datetime.now(timezone.utc)
     print(f"=== Coleta iniciada: {agora.isoformat()} ===")
@@ -335,6 +484,10 @@ def main():
     print(json.dumps(registro, indent=2, ensure_ascii=False))
 
     salvar_supabase(registro)
+
+    historico_df = fetch_history_df()
+    avaliar_previsoes_vencidas(agora, historico_df)
+    registrar_previsoes(agora, historico_df)
 
     os.makedirs(DATA_DIR, exist_ok=True)
     latest_path = os.path.join(DATA_DIR, "latest.json")

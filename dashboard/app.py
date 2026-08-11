@@ -82,6 +82,22 @@ def load_history():
 
 
 @st.cache_data(ttl=900)
+def load_previsoes():
+    if SUPABASE_URL and SUPABASE_KEY:
+        headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+        try:
+            response = requests.get(
+                f"{SUPABASE_URL}/rest/v1/previsoes?select=*&order=data_previsao.desc,prazo_dias.asc",
+                headers=headers, timeout=15,
+            )
+            response.raise_for_status()
+            return pd.DataFrame(response.json())
+        except requests.RequestException:
+            pass
+    return pd.DataFrame()
+
+
+@st.cache_data(ttl=900)
 def load_cycle_prices():
     if LOCAL_PRICE_HISTORY.exists():
         return pd.DataFrame(json.loads(LOCAL_PRICE_HISTORY.read_text(encoding="utf-8")))
@@ -359,6 +375,45 @@ if analog:
             st.dataframe(tabela_exemplos, width="stretch", hide_index=True)
 else:
     st.caption("Ainda não há histórico suficiente com todos os dados necessários (RSI, StochRSI, médias móveis) para fazer essa comparação.")
+
+st.subheader("Placar: os palpites anteriores acertaram?")
+st.caption(
+    "Todo dia o coletor grava o palpite do dia (igual a tabela acima) antes de saber o resultado. Quando a "
+    "data-alvo chega, ele confere sozinho se a direção estava certa e se o preço-alvo foi batido. Isso é um "
+    "histórico honesto: nada aqui é reescrito depois de saber o resultado."
+)
+previsoes_df = load_previsoes()
+if previsoes_df.empty:
+    st.caption("Ainda não há palpites registrados — a partir de hoje o coletor começa a gravar, e os primeiros resultados aparecem aqui em alguns dias.")
+else:
+    avaliadas = previsoes_df[previsoes_df["preco_real"].notna()].copy()
+    pendentes_n = len(previsoes_df) - len(avaliadas)
+    if not avaliadas.empty:
+        acerto_direcao = avaliadas["direcao_correta"].mean() * 100
+        acerto_alvo = avaliadas["alvo_batido"].mean() * 100
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Acertou a direção", f"{acerto_direcao:.0f}%", help="Das vezes em que já sabemos o resultado, quantas o painel acertou se ia subir ou cair.")
+        m2.metric("Bateu o preço-alvo", f"{acerto_alvo:.0f}%", help="Das vezes em que já sabemos o resultado, quantas o preço chegou no valor estimado ou passou dele.")
+        m3.metric("Palpites já conferidos", f"{len(avaliadas)}", f"{pendentes_n} aguardando data" if pendentes_n else None)
+
+        tabela_placar = avaliadas.sort_values("data_previsao", ascending=False).head(20).copy()
+        tabela_placar["Palpite feito em"] = pd.to_datetime(tabela_placar["data_previsao"]).dt.strftime("%d/%m/%Y")
+        tabela_placar["Prazo"] = tabela_placar["prazo_dias"].astype(str) + " dias"
+        tabela_placar["Direção prevista"] = tabela_placar["direcao_prevista"]
+        tabela_placar["Preço-alvo"] = tabela_placar["preco_alvo_estimado"].map(lambda v: f"US$ {v:,.0f}")
+        tabela_placar["Preço real"] = tabela_placar["preco_real"].map(lambda v: f"US$ {v:,.0f}")
+        tabela_placar["Variação real"] = tabela_placar["variacao_real_pct"].map(lambda v: f"{v:+.1f}%")
+        tabela_placar["Direção acertou?"] = tabela_placar["direcao_correta"].map(lambda v: "✅" if v else "❌")
+        tabela_placar["Bateu o alvo?"] = tabela_placar["alvo_batido"].map(lambda v: "✅" if v else "❌")
+        st.dataframe(
+            tabela_placar[[
+                "Palpite feito em", "Prazo", "Direção prevista", "Preço-alvo", "Preço real",
+                "Variação real", "Direção acertou?", "Bateu o alvo?",
+            ]],
+            width="stretch", hide_index=True,
+        )
+    else:
+        st.caption(f"{pendentes_n} palpite(s) já registrado(s), mas nenhum ainda com data-alvo vencida para conferir.")
 
 st.subheader("Simulador: comprar aos poucos e vender depois")
 st.caption(
