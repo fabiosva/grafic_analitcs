@@ -10,7 +10,7 @@ import streamlit as st
 
 from analytics import (
     INDICATORS, NEXT_HALVING_ESTIMATE, NEXT_TOP_WINDOW, build_cycle_projection, build_cycle_repeat,
-    build_signals, latest_value, purchase_readiness, simulate_dca, simulate_exits,
+    build_signals, historical_analogs, latest_value, purchase_readiness, simulate_dca, simulate_exits,
 )
 
 
@@ -316,6 +316,37 @@ with summary_right:
   <div class="muted" style="margin-top:8px">Vem de duas contas: quanto tempo passou desde o último halving e quanto tempo costuma passar depois do topo. É só uma referência — o fundo pode vir antes ou depois disso.</div>
 </div>
 """, unsafe_allow_html=True)
+
+st.subheader("O que aconteceu em dias parecidos com hoje")
+st.caption(
+    "Isso NÃO é uma previsão. É um raio-x histórico: o painel pega o RSI, o StochRSI, o preço vs as médias "
+    "móveis e o quanto o preço está fora do normal (Z-Score de 90 dias) de hoje, e procura no histórico "
+    "disponível (cerca de 1 ano) os dias mais parecidos com esse conjunto. Depois olha o que o preço realmente "
+    "fez alguns dias após cada um desses dias parecidos. Amostra pequena e histórico curto — os dias parecidos "
+    "quase sempre vêm agrupados de poucos períodos recentes (não são casos independentes) — trate como um "
+    "contexto a mais, nunca como certeza."
+)
+analog = historical_analogs(df)
+if analog:
+    a1, a2, a3, a4 = st.columns(4)
+    horizonte_labels = {3: "3 dias", 7: "7 dias", 14: "14 dias", 30: "30 dias"}
+    for coluna, (h, label) in zip((a1, a2, a3, a4), horizonte_labels.items()):
+        dado = analog["horizontes"].get(h)
+        if not dado:
+            continue
+        with coluna:
+            cor = "#22c55e" if dado["prob_alta"] >= 55 else ("#ef4444" if dado["prob_alta"] <= 45 else "#94a3b8")
+            st.markdown(
+                f'<div class="lens"><div class="lens-title">Em {label}</div>'
+                f'<div class="lens-score" style="color:{cor}">{dado["prob_alta"]:.0f}% subiu</div>'
+                f'<div class="lens-text">Retorno médio: {dado["retorno_medio_pct"]:+.1f}% '
+                f'(mediana {dado["retorno_mediano_pct"]:+.1f}%) · {dado["n_amostras"]} dias parecidos analisados</div></div>',
+                unsafe_allow_html=True,
+            )
+    datas_fmt = ", ".join(pd.Timestamp(d).strftime("%m/%Y") for d in sorted(set(analog["datas_vizinhas"]))[:8])
+    st.caption(f"Os dias mais parecidos com hoje vieram de: {datas_fmt}" + ("…" if len(set(analog["datas_vizinhas"])) > 8 else ""))
+else:
+    st.caption("Ainda não há histórico suficiente com todos os dados necessários (RSI, StochRSI, médias móveis) para fazer essa comparação.")
 
 st.subheader("Simulador: comprar aos poucos e vender depois")
 st.caption(

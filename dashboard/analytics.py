@@ -105,6 +105,73 @@ def latest_value(df: pd.DataFrame, column: str):
     return row[column], pd.Timestamp(row["data"])
 
 
+def historical_analogs(df: pd.DataFrame, k: int = 20, horizons=(3, 7, 14, 30)) -> dict | None:
+    """
+    Acha os K dias historicos mais parecidos com hoje (RSI, StochRSI, preco vs
+    medias moveis, Z-Score de 90 dias) e olha o que o preco realmente fez nos
+    dias seguintes a cada um deles.
+
+    Isso NAO e uma previsao: e frequencia historica em situacoes parecidas,
+    com amostra pequena e vizinhos que costumam vir agrupados de poucos
+    periodos historicos (nao sao pontos independentes).
+    """
+    work = df.copy()
+    price = pd.to_numeric(work["preco"], errors="coerce")
+
+    features = pd.DataFrame(index=work.index)
+    features["rsi"] = pd.to_numeric(work.get("rsi"), errors="coerce")
+    features["stoch_rsi_k"] = pd.to_numeric(work.get("stoch_rsi_k"), errors="coerce")
+    features["price_sma50"] = price / pd.to_numeric(work.get("sma50"), errors="coerce")
+    features["price_sma200"] = price / pd.to_numeric(work.get("sma200"), errors="coerce")
+    rolling_mean = price.rolling(90, min_periods=45).mean()
+    rolling_std = price.rolling(90, min_periods=45).std()
+    features["zscore_90d"] = (price - rolling_mean) / rolling_std.replace(0, np.nan)
+
+    valid = features.dropna()
+    if valid.empty:
+        return None
+
+    today_pos = len(work) - 1
+    if today_pos not in valid.index:
+        return None
+    today_vec = valid.loc[today_pos]
+
+    max_h = max(horizons)
+    candidates = valid[valid.index <= today_pos - max_h - 1]
+    if len(candidates) < k:
+        return None
+
+    mean, std = candidates.mean(), candidates.std().replace(0, np.nan)
+    norm = (candidates - mean) / std
+    today_norm = (today_vec - mean) / std
+    dist = ((norm - today_norm) ** 2).sum(axis=1).pow(0.5)
+    nearest = dist.nsmallest(k).index
+
+    resultados = {}
+    for h in horizons:
+        retornos = []
+        for pos in nearest:
+            futuro_pos = pos + h
+            if futuro_pos < len(work):
+                preco_agora = price.iloc[pos]
+                preco_futuro = price.iloc[futuro_pos]
+                if pd.notna(preco_agora) and pd.notna(preco_futuro) and preco_agora > 0:
+                    retornos.append((preco_futuro / preco_agora - 1) * 100)
+        if not retornos:
+            continue
+        retornos = np.array(retornos)
+        resultados[h] = {
+            "prob_alta": float((retornos > 0).mean() * 100),
+            "retorno_medio_pct": float(retornos.mean()),
+            "retorno_mediano_pct": float(np.median(retornos)),
+            "n_amostras": len(retornos),
+        }
+    if not resultados:
+        return None
+    datas_vizinhas = work.loc[list(nearest), "data"].tolist()
+    return {"horizontes": resultados, "datas_vizinhas": datas_vizinhas}
+
+
 def _date_window(anchor: pd.Timestamp, samples: np.ndarray) -> dict:
     mean_days = float(samples.mean())
     std_days = float(samples.std())
