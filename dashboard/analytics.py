@@ -481,17 +481,119 @@ def simulate_dca(capital_brl: float, current_price_usd: float, window_price_usd:
 
 
 def simulate_exits(total_btc: float, capital_brl: float, usd_brl_future: float,
-                   targets: list[tuple[str, float, str]]) -> list[dict]:
+                   targets: list[tuple[str, float, str]],
+                   custos_venda_pct: float = 0.0, imposto_pct: float = 0.0,
+                   custodia_pct_ano: float = 0.0, anos_custodia: float = 0.0) -> list[dict]:
+    """custos_venda_pct junta taxa de corretora + spread + slippage (tudo cobrado
+    na hora de vender). custodia_pct_ano e cobrado sobre o capital investido,
+    multiplicado pelos anos que ficou guardado ate esse cenario."""
     rows = []
     for name, price_usd, horizon in targets:
-        value = total_btc * price_usd * usd_brl_future
-        profit = value - capital_brl
+        valor_bruto = total_btc * price_usd * usd_brl_future
+        custos_venda = valor_bruto * (custos_venda_pct / 100)
+        custodia_total = capital_brl * (custodia_pct_ano / 100) * anos_custodia
+        lucro_bruto = valor_bruto - custos_venda - capital_brl - custodia_total
+        imposto = max(0.0, lucro_bruto) * (imposto_pct / 100)
+        lucro_liquido = lucro_bruto - imposto
+        valor_liquido = capital_brl + lucro_liquido
         rows.append({
             "Cenário": name,
             "Preço BTC (US$)": price_usd,
             "Horizonte": horizon,
-            "Valor estimado (R$)": value,
-            "Lucro bruto (R$)": profit,
-            "Retorno": profit / capital_brl * 100 if capital_brl else np.nan,
+            "Valor estimado (R$)": valor_liquido,
+            "Lucro bruto (R$)": lucro_bruto,
+            "Imposto (R$)": imposto,
+            "Lucro líquido (R$)": lucro_liquido,
+            "Retorno": lucro_liquido / capital_brl * 100 if capital_brl else np.nan,
         })
     return rows
+
+
+def stress_fundo_mais_baixo(window_price_usd: float, quedas_extras_pct=(10, 20, 30)) -> list[dict]:
+    """E se o fundo real vier mais baixo do que a estimativa usada no simulador?"""
+    return [
+        {
+            "Se cair mais": f"{q}%",
+            "Novo fundo possível (US$)": window_price_usd * (1 - q / 100),
+        }
+        for q in quedas_extras_pct
+    ]
+
+
+def data_health(df: pd.DataFrame) -> list[dict]:
+    """Pra cada indicador usado no score, mostra o valor mais recente disponivel,
+    de quando ele e, e ha quanto tempo (idade). Serve pra saber quando o painel
+    esta usando um dado reciclado (rodizio) em vez de fresco."""
+    if df.empty:
+        return []
+    hoje = pd.Timestamp(df["data"].iloc[-1])
+    colunas = list(dict.fromkeys(list(INDICATORS.keys()) + ["fear_greed", "preco"]))
+    linhas = []
+    for coluna in colunas:
+        if coluna not in df.columns:
+            continue
+        serie = df[["data", coluna]].dropna()
+        if serie.empty:
+            linhas.append({"coluna": coluna, "valor": None, "data": None, "idade_dias": None, "status": "sem dado"})
+            continue
+        ultimo = serie.iloc[-1]
+        idade = (hoje - pd.Timestamp(ultimo["data"])).days
+        if idade <= 1:
+            status = "atual"
+        elif idade <= 7:
+            status = "levemente desatualizado"
+        else:
+            status = "desatualizado"
+        linhas.append({
+            "coluna": coluna,
+            "valor": float(ultimo[coluna]),
+            "data": pd.Timestamp(ultimo["data"]),
+            "idade_dias": idade,
+            "status": status,
+        })
+    return linhas
+
+
+def score_calibration(df: pd.DataFrame, composite: pd.Series, thresholds=(60, 70, 80),
+                       horizons=(7, 14, 30)) -> dict:
+    """Walk-forward honesto: toda vez que a nota composta cruzou um limite no
+    passado (usando so dados conhecidos ate aquele dia), o que o preco fez
+    depois? Mostra se notas altas de fato precederam alta de preco."""
+    price = pd.to_numeric(df["preco"], errors="coerce")
+    resultados = {}
+    for limite in thresholds:
+        cruzou = (composite >= limite) & (composite.shift(1) < limite)
+        posicoes = [i for i, v in cruzou.items() if v]
+        for h in horizons:
+            retornos = []
+            for pos in posicoes:
+                futuro = pos + h
+                if futuro < len(df):
+                    p0, p1 = price.iloc[pos], price.iloc[futuro]
+                    if pd.notna(p0) and pd.notna(p1) and p0 > 0:
+                        retornos.append((p1 / p0 - 1) * 100)
+            if retornos:
+                arr = np.array(retornos)
+                resultados[(limite, h)] = {
+                    "n": len(arr),
+                    "subiu_pct": float((arr > 0).mean() * 100),
+                    "retorno_medio_pct": float(arr.mean()),
+                }
+    return resultados
+
+
+def models_consensus(modelos: dict) -> dict | None:
+    """Recebe {rotulo: preco} de varios modelos de fundo e resume mediana,
+    minimo, maximo e o quanto eles discordam entre si."""
+    valores = {k: v for k, v in modelos.items() if v is not None}
+    if not valores:
+        return None
+    arr = np.array(list(valores.values()), dtype=float)
+    mediana = float(np.median(arr))
+    return {
+        "modelos": valores,
+        "mediana": mediana,
+        "minimo": float(arr.min()),
+        "maximo": float(arr.max()),
+        "dispersao_pct": float((arr.max() - arr.min()) / mediana * 100) if mediana else 0.0,
+    }
