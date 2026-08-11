@@ -10,7 +10,7 @@ import streamlit as st
 
 from analytics import (
     INDICATORS, NEXT_HALVING_ESTIMATE, NEXT_TOP_WINDOW, build_cycle_projection, build_cycle_repeat,
-    build_signals, data_health, historical_analogs, latest_value, models_consensus, purchase_readiness,
+    build_signals, classify, data_health, historical_analogs, latest_value, models_consensus, purchase_readiness,
     score_calibration, simulate_dca, simulate_exits, stress_fundo_mais_baixo,
 )
 
@@ -259,6 +259,39 @@ else:
     read = "Ainda não parece fundo"
 
 delta_text = f"{daily_delta:+.1f} desde ontem" if pd.notna(daily_delta) else "sem comparação"
+
+gauge_label, gauge_color = classify(score, coverage_now)
+gauge = go.Figure(go.Indicator(
+    mode="gauge+number",
+    value=score if pd.notna(score) else 0,
+    number={"suffix": "/100", "font": {"size": 46, "color": gauge_color}},
+    gauge={
+        "axis": {"range": [0, 100], "tickcolor": "#94a3b8", "tickfont": {"color": "#94a3b8"}},
+        "bar": {"color": gauge_color, "thickness": 0.3},
+        "bgcolor": "#0b1220",
+        "borderwidth": 1,
+        "bordercolor": "#273449",
+        "steps": [
+            {"range": [0, 35], "color": "#3f1d1d"},
+            {"range": [35, 55], "color": "#4a2b12"},
+            {"range": [55, 75], "color": "#4a3b0e"},
+            {"range": [75, 100], "color": "#14351f"},
+        ],
+    },
+))
+gauge.update_layout(height=230, margin={"l": 40, "r": 40, "t": 10, "b": 10}, paper_bgcolor="#080c14", font={"color": "#e5e7eb"})
+st.markdown("### Velocímetro: é um bom momento pra comprar?")
+st.plotly_chart(gauge, width="stretch")
+st.markdown(
+    f"<div style='text-align:center;font-size:1.15rem;font-weight:800;color:{gauge_color};margin-top:-8px'>{gauge_label}</div>",
+    unsafe_allow_html=True,
+)
+st.caption(
+    f"Combina os {len(INDICATORS)} indicadores do painel numa nota só, cada um com seu peso "
+    f"(cobertura hoje: {coverage_now:.0f}% dos dados disponíveis). Quanto mais alto, mais parecido "
+    "com momentos históricos de fundo — não é garantia de nada, é confluência de sinais."
+)
+
 st.markdown(f"""
 <div class="hero">
   <div class="hero-grid">
