@@ -9,7 +9,7 @@ import requests
 import streamlit as st
 
 from analytics import (
-    INDICATORS, NEXT_HALVING_ESTIMATE, NEXT_TOP_WINDOW, build_cycle_projection,
+    INDICATORS, NEXT_HALVING_ESTIMATE, NEXT_TOP_WINDOW, build_cycle_projection, build_cycle_repeat,
     build_signals, latest_value, purchase_readiness, simulate_dca, simulate_exits,
 )
 
@@ -115,6 +115,8 @@ PLAIN = {
     "Retorno 30 dias": "Quanto subiu ou caiu em 30 dias",
     "Z-Score preço 90d": "Preço vs média dos 90 dias",
     "MACD normalizado": "A tendência está virando? (MACD)",
+    "Preço vs média de 2 anos": "Preço vs média de 2 anos",
+    "Preço vs Power Law": "Preço vs corredor de longo prazo",
 }
 
 
@@ -151,6 +153,29 @@ def brl(value):
     return f"R$ {formatted}"
 
 
+def price_level_card(model, target, current_price, detail):
+    reached = current_price <= target
+    if reached:
+        distance = (target - current_price) / target * 100
+        status = "ATINGIU"
+        status_text = f"preço está {distance:.1f}% abaixo do limite"
+        color = "#22c55e"
+    else:
+        distance = (current_price - target) / current_price * 100
+        status = "AINDA NÃO"
+        status_text = f"falta cair {distance:.1f}%"
+        color = "#f59e0b"
+    st.markdown(
+        f'<div class="lens">'
+        f'<div class="lens-title">{model}</div>'
+        f'<div class="lens-score">US$ {target:,.0f}</div>'
+        f'<div style="color:{color};font-weight:800;margin-bottom:7px">● {status} · {status_text}</div>'
+        f'<div class="lens-text">{detail}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
 df, source = load_history()
 if df.empty:
     st.error("Nenhum dado disponível. Execute o coletor e o backfill.")
@@ -184,6 +209,7 @@ daily_delta = confirmation_today - previous_confirmation
 cycle_prices = load_cycle_prices()
 try:
     projection = build_cycle_projection(cycle_prices if not cycle_prices.empty else df)
+    cycle_repeat = build_cycle_repeat(cycle_prices if not cycle_prices.empty else df)
 except ValueError:
     st.error(
         "Faltou histórico de preço para calcular o período provável do fundo. "
@@ -192,6 +218,11 @@ except ValueError:
         "Rode o backfill de novo para gerar esse arquivo."
     )
     st.stop()
+structural_score = (
+    structural_score * len(STRUCTURAL)
+    + cycle_repeat["investor_score"]
+    + cycle_repeat["power_score"]
+) / (len(STRUCTURAL) + 2)
 window_start, window_end = projection["consensus_start"], projection["consensus_end"]
 as_of = pd.Timestamp(last["data"])
 days_to_window = (window_start.normalize() - as_of.normalize()).days
@@ -226,9 +257,11 @@ st.caption(
     "Preço barato sozinho não quer dizer que o menor preço já passou."
 )
 
-current = signals.iloc[-1]
+current = signals.iloc[-1].copy()
+current["Preço vs média de 2 anos"] = cycle_repeat["investor_score"]
+current["Preço vs Power Law"] = cycle_repeat["power_score"]
 LENSES = {
-    "Preço está barato?": ["MVRV Z-Score", "Preço / Realized", "Puell Multiple", "Reserve Risk", "RHODL Ratio"],
+    "Preço está barato?": ["MVRV Z-Score", "Preço / Realized", "Puell Multiple", "Reserve Risk", "RHODL Ratio", "Preço vs média de 2 anos", "Preço vs Power Law"],
     "Quem tem BTC está sofrendo?": ["NUPL", "SOPR"],
     "Queda está perdendo força?": ["RSI diário", "StochRSI", "Preço / SMA 200", "Drawdown anual", "Retorno 30 dias", "Z-Score preço 90d", "MACD normalizado"],
     "Há medo no mercado?": ["Fear & Greed"],
@@ -301,7 +334,7 @@ with i2:
     strategy = st.selectbox("Seu jeito de investir", ["Conservador", "Balanceado", "Agressivo"], index=1,
                             help="Conservador compra menos agora e guarda mais para depois. Agressivo faz o contrário.")
 with i3:
-    default_window_price = round(((btc_price or 0) + (realized_price or btc_price or 0)) / 2, -2)
+    default_window_price = round(cycle_repeat["bottom_price"], -2)
     window_price = st.number_input("Preço que você acha que o BTC vai ter no fundo (US$)", min_value=1000.0, value=float(default_window_price), step=1000.0)
 with i4:
     fee_pct = st.number_input("Taxa que a corretora cobra (%)", min_value=0.0, max_value=5.0, value=0.5, step=0.1)
@@ -337,7 +370,7 @@ with st.expander("Mudar os preços de venda e o dólar"):
     defensive_target = e1.number_input("Vender cedo, no seguro (US$)", min_value=1000.0, value=float(round(btc_price * 1.5, -3)), step=5000.0)
     retest_target = e2.number_input("BTC volta ao topo antigo (US$)", min_value=1000.0, value=float(round(prior_top, -3)), step=5000.0)
     mid_target = e3.number_input("Meio da próxima alta (US$)", min_value=1000.0, value=float(round(prior_top * 1.4, -3)), step=5000.0)
-    top_target = e4.number_input("BTC faz novo topo (US$)", min_value=1000.0, value=float(round(prior_top * 2.0, -3)), step=10000.0)
+    top_target = e4.number_input("BTC faz novo topo (US$)", min_value=1000.0, value=float(round(cycle_repeat["top_price"], -3)), step=10000.0)
     future_fx = st.number_input("Dólar na hora de vender (R$)", min_value=1.0, max_value=20.0, value=float(round(usd_brl, 2)), step=0.10)
     st.caption(f"Dólar de hoje, usado nas compras: R$ {usd_brl:.2f} ({fx_source}). Ninguém consegue prever o dólar do futuro, e ele muda bastante o resultado em reais.")
 
@@ -345,7 +378,7 @@ targets = [
     ("Vender cedo, no seguro", defensive_target, "quando o preço chegar lá; não dá para saber a data"),
     ("Volta ao topo antigo", retest_target, "provavelmente entre 2027 e 2028"),
     ("Meio da próxima alta", mid_target, f"por volta de {NEXT_HALVING_ESTIMATE + pd.Timedelta(days=365):%m/%Y}"),
-    ("Novo topo", top_target, f"entre {NEXT_TOP_WINDOW[0]:%d/%m} e {NEXT_TOP_WINDOW[1]:%d/%m/%Y}"),
+    ("Novo topo", top_target, f"cenário repetido aponta {cycle_repeat['top_date']:%m/%Y}"),
 ]
 exit_rows = simulate_exits(dca["btc"], capital_brl, future_fx, targets)
 exit_df = pd.DataFrame(exit_rows)
@@ -413,6 +446,211 @@ st.caption(
     "A linha de 57 semanas é aquele seu padrão de 399 dias; deixei separado porque tem menos histórico para comprovar. "
     "O preço está numa escala que espreme os números grandes, para dar para ver os ciclos antigos junto com os de hoje."
 )
+
+st.subheader("Mapa dos possíveis fundos")
+st.caption(
+    f"Bitcoin hoje: US$ {btc_price:,.0f}. Cada cartão mostra um nível associado a fundos, se o preço já chegou nele "
+    "e quanto ainda precisaria cair. São referências diferentes, não uma promessa de preço."
+)
+
+pi_gap = cycle_repeat["pi_gap_pct"]
+if cycle_repeat["pi_triggered"]:
+    pi_label = "Alerta de topo ativo"
+elif pi_gap <= 10:
+    pi_label = "Linhas próximas"
+else:
+    pi_label = "Sem alerta de topo"
+scenario_cross = cycle_repeat["pi_cross_date_scenario"]
+weekly_200 = float(projection["smas"][200].dropna().iloc[-1])
+
+cvdd, _ = latest_value(df, "cvdd")
+balanced_price, _ = latest_value(df, "balanced_price")
+terminal_price, _ = latest_value(df, "terminal_price")
+lth_realized_price, _ = latest_value(df, "lth_realized_price")
+gm_sma350, _ = latest_value(df, "gm_sma350")
+gm_x2, _ = latest_value(df, "gm_x2")
+gm_x2618, _ = latest_value(df, "gm_x2618")
+hashribbons_state, _ = latest_value(df, "hashribbons")
+
+bottom_levels = [
+    ("Cycle Repeat", cycle_repeat["bottom_price"], f"Menor preço do cenário repetido · {cycle_repeat['bottom_date']:%m/%Y}"),
+    ("Média de 2 anos", cycle_repeat["current_ma730"], "Zona histórica de compra quando o preço fica abaixo"),
+    ("Piso do Power Law", cycle_repeat["current_power_lower"], "Limite inferior do corredor estatístico atual"),
+    ("Preço realizado", float(realized_price), "Preço médio estimado pago pelas moedas da rede"),
+    ("Média de 200 semanas", weekly_200, "Suporte de longo prazo acompanhado entre ciclos"),
+]
+if lth_realized_price is not None:
+    bottom_levels.append(
+        ("Preço pago por quem segura há anos", float(lth_realized_price),
+         "Custo médio de quem não vende há muito tempo (LTH Realized Price)")
+    )
+if balanced_price is not None:
+    bottom_levels.append(
+        ("Preço equilibrado", float(balanced_price),
+         "Modelo que soma custo de mineração e custo dos investidores (Balanced Price)")
+    )
+if cvdd is not None:
+    bottom_levels.append(
+        ("Piso histórico de fundos", float(cvdd),
+         "Nível que marcou o fundo em ciclos anteriores (CVDD)")
+    )
+if gm_sma350 is not None:
+    bottom_levels.append(
+        ("Média de 350 dias", float(gm_sma350),
+         "Base da régua Golden Ratio — abaixo dela, o preço está historicamente barato")
+    )
+
+rows = [bottom_levels[i:i + 3] for i in range(0, len(bottom_levels), 3)]
+for row_levels in rows:
+    cols = st.columns(3)
+    for column, level in zip(cols, row_levels):
+        with column:
+            price_level_card(level[0], level[1], btc_price, level[2])
+
+clock = projection["clock_1064_365"]
+c1, c2 = st.columns(2)
+with c1:
+    st.markdown(
+        f'<div class="lens"><div class="lens-title">Relógio 1064/365 · somente data</div>'
+        f'<div class="lens-score">{clock["bottom"]:%d/%m/%Y}</div>'
+        f'<div style="color:#f59e0b;font-weight:800;margin-bottom:7px">● FALTAM {clock["days_to_bottom"]} DIAS</div>'
+        f'<div class="lens-text">Não estima preço; mede 365 dias desde o topo provisório.</div></div>',
+        unsafe_allow_html=True,
+    )
+with c2:
+    if hashribbons_state == "Down":
+        hr_color, hr_text = "#ef4444", "● MINERADORES EM DIFICULDADE"
+        hr_detail = "Mineradores fracos estão desligando as máquinas. Historicamente isso acontece perto de fundos, mas o sinal de compra é quando isso virar 'Up' de novo — ainda não virou."
+    elif hashribbons_state == "Up":
+        hr_color, hr_text = "#22c55e", "● MINERADORES SE RECUPERANDO"
+        hr_detail = "A capitulação dos mineradores passou. Se isso aconteceu logo depois de um período fraco, é historicamente um bom sinal (Hash Ribbons)."
+    else:
+        hr_color, hr_text = "#94a3b8", "● SEM DADO"
+        hr_detail = "Sem informação sobre a saúde dos mineradores hoje."
+    st.markdown(
+        f'<div class="lens"><div class="lens-title">Saúde dos mineradores</div>'
+        f'<div class="lens-score">{hashribbons_state or "N/D"}</div>'
+        f'<div style="color:{hr_color};font-weight:800;margin-bottom:7px">{hr_text}</div>'
+        f'<div class="lens-text">{hr_detail}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+st.subheader("Alertas de topo e planejamento de saída")
+st.caption("Esta parte é somente sobre possível topo. Ela não entra na confirmação de fundo de hoje.")
+t1, t2, t3, t4 = st.columns(4)
+t1.metric("Cycle Repeat · possível topo", f"US$ {cycle_repeat['top_price']:,.0f}", cycle_repeat["top_date"].strftime("%m/%Y"))
+t2.metric("Teto atual do Power Law", f"US$ {cycle_repeat['current_power_upper']:,.0f}")
+t3.metric("Média de 2 anos × 5", f"US$ {cycle_repeat['current_ma730x5']:,.0f}")
+t4.metric("Pi Cycle hoje", pi_label, f"distância {pi_gap:.1f}%")
+st.caption("Pi Cycle no cenário repetido: " + (scenario_cross.strftime("cruzaria em %m/%Y") if scenario_cross else "não cruza durante os próximos 1.458 dias."))
+
+u1, u2, u3 = st.columns(3)
+if terminal_price is not None:
+    u1.metric("Teto histórico de topos", f"US$ {terminal_price:,.0f}", help="Nível que marcou topos em ciclos anteriores (Terminal Price)")
+if gm_x2 is not None:
+    u2.metric("Régua Golden Ratio × 2", f"US$ {gm_x2:,.0f}", help="Dobro da média de 350 dias — banda intermediária de topo")
+if gm_x2618 is not None:
+    u3.metric("Régua Golden Ratio × 2,618", f"US$ {gm_x2618:,.0f}", help="Proporção áurea sobre a média de 350 dias — banda clássica de topo de ciclo")
+
+st.subheader("Gráficos detalhados")
+tab_cycle, tab_clock, tab_investor, tab_power, tab_pi = st.tabs(["Cenário de 1.458 dias", "Relógio 1064/365", "Média de 2 anos", "Power Law", "Pi Cycle Top"])
+model = cycle_repeat["combined"]
+model_view = model.tail(1458 * 2 + 200)
+with tab_cycle:
+    cycle_chart = go.Figure()
+    past = model_view.loc[model_view["tipo"] == "historico"]
+    future = model_view.loc[model_view["tipo"] == "cenario"]
+    cycle_chart.add_trace(go.Scatter(x=past["data"], y=past["preco"], name="Preço real", line={"color":"#e5e7eb","width":1.4}))
+    cycle_chart.add_trace(go.Scatter(x=future["data"], y=future["preco"], name="Cenário repetido", line={"color":"#22c55e","width":1.5}))
+    cycle_chart.add_trace(go.Scatter(x=model_view["data"], y=model_view["ma200"], name="Média 200 dias", line={"color":"#f59e0b","width":2}))
+    cycle_chart.add_trace(go.Scatter(x=model_view["data"], y=model_view["ma1458"], name="Média 1.458 dias", line={"color":"#3b82f6","width":2}))
+    cycle_chart.add_vline(x=cycle_repeat["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje")
+    cycle_chart.add_annotation(x=cycle_repeat["bottom_date"], y=cycle_repeat["bottom_price"], text=f"fundo do cenário<br>US$ {cycle_repeat['bottom_price']:,.0f}", showarrow=True, arrowcolor="#22c55e")
+    cycle_chart.add_annotation(x=cycle_repeat["top_date"], y=cycle_repeat["top_price"], text=f"topo do cenário<br>US$ {cycle_repeat['top_price']:,.0f}", showarrow=True, arrowcolor="#ef4444")
+    cycle_chart.update_yaxes(type="log", title="Preço do BTC")
+    cycle_chart.update_layout(height=540, margin={"l":20,"r":20,"t":30,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
+    st.plotly_chart(cycle_chart, width="stretch")
+    st.info("Este não é um preço previsto: o gráfico pega as variações dos últimos 1.458 dias e repete a mesma sequência a partir de hoje.")
+
+with tab_clock:
+    clock_chart = go.Figure()
+    clock_history = projection["work"].loc[projection["work"]["data"] >= pd.Timestamp("2014-01-01")]
+    clock_chart.add_trace(go.Scatter(x=clock_history["data"], y=clock_history["preco"], name="Preço real", line={"color":"#e5e7eb","width":1.3}))
+    for start, end, phase in projection["clock_1064_365"]["phases"]:
+        is_up = "alta" in phase
+        clock_chart.add_vrect(
+            x0=start, x1=end,
+            fillcolor="#166534" if is_up else "#7f1d1d",
+            opacity=.20 if "projetada" not in phase else .12,
+            line_width=0,
+            annotation_text=("1.064 dias" if is_up else "365 dias") + (" · cenário" if "projetada" in phase else ""),
+            annotation_position="top left",
+        )
+    clock_chart.add_vline(x=projection["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje")
+    clock_chart.add_vline(x=projection["clock_1064_365"]["bottom"], line_color="#22c55e", line_dash="dash", annotation_text="fundo pelo relógio")
+    clock_chart.add_vline(x=projection["clock_1064_365"]["next_top"], line_color="#ef4444", line_dash="dash", annotation_text="próximo topo pelo relógio")
+    clock_chart.update_yaxes(type="log", title="Preço do BTC")
+    clock_chart.update_xaxes(range=[pd.Timestamp("2014-01-01"), projection["clock_1064_365"]["next_top"] + pd.Timedelta(days=60)])
+    clock_chart.update_layout(height=540, margin={"l":20,"r":20,"t":30,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
+    st.plotly_chart(clock_chart, width="stretch")
+    st.info(
+        "Esse relógio usa somente datas. O topo atual é provisório: se surgir uma máxima mais alta, a contagem de 365 dias reinicia. "
+        "Ele não prevê o preço do fundo nem entra novamente na nota, pois a janela pós-topo já considera esse tipo de evidência."
+    )
+
+with tab_investor:
+    investor = model.loc[model["tipo"] == "historico"]
+    investor_chart = go.Figure()
+    investor_chart.add_trace(go.Scatter(x=investor["data"], y=investor["preco"], name="Preço real", line={"color":"#e5e7eb","width":1.2}))
+    investor_chart.add_trace(go.Scatter(x=investor["data"], y=investor["ma730"], name="Média de 2 anos", line={"color":"#22c55e","width":2}))
+    investor_chart.add_trace(go.Scatter(x=investor["data"], y=investor["ma730x5"], name="Média de 2 anos × 5", line={"color":"#ef4444","width":2}))
+    show_2y_bands = st.toggle("Mostrar também os multiplicadores ×2, ×3 e ×4", value=False)
+    if show_2y_bands:
+        for multiple, color in ((2, "#fbbf24"), (3, "#fb923c"), (4, "#f87171")):
+            investor_chart.add_trace(go.Scatter(x=investor["data"], y=investor[f"ma730x{multiple}"], name=f"Média 2 anos × {multiple}", line={"color":color,"width":1,"dash":"dot"}))
+    investor_chart.update_yaxes(type="log", title="Preço do BTC")
+    investor_chart.update_layout(height=540, margin={"l":20,"r":20,"t":30,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
+    st.plotly_chart(investor_chart, width="stretch")
+    if cycle_repeat["investor_ratio"] <= 1:
+        st.success("O preço está abaixo da média de 2 anos: zona histórica de compra deste indicador.")
+    elif cycle_repeat["investor_ratio"] >= 5:
+        st.error("O preço está acima de 5 vezes a média de 2 anos: zona histórica de realização deste indicador.")
+    else:
+        st.info(f"O preço está em {cycle_repeat['investor_ratio']:.2f}× a média de 2 anos: entre as zonas extremas de compra e venda.")
+
+with tab_power:
+    power_chart = go.Figure()
+    power_chart.add_trace(go.Scatter(x=model["data"], y=model["power_upper"], name="Faixa superior", line={"color":"#ef4444","width":2}))
+    power_chart.add_trace(go.Scatter(x=model["data"], y=model["power_center"], name="Valor central", line={"color":"#f59e0b","width":2}))
+    power_chart.add_trace(go.Scatter(x=model["data"], y=model["power_lower"], name="Piso estatístico", line={"color":"#38bdf8","width":2}))
+    power_actual = model.loc[model["tipo"] == "historico"]
+    power_chart.add_trace(go.Scatter(x=power_actual["data"], y=power_actual["preco"], name="Preço real", line={"color":"#e5e7eb","width":1.2}))
+    power_chart.add_vline(x=cycle_repeat["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje")
+    power_chart.update_yaxes(type="log", title="Preço do BTC")
+    power_chart.update_layout(height=540, margin={"l":20,"r":20,"t":30,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
+    st.plotly_chart(power_chart, width="stretch")
+    st.info(
+        "O Power Law ajusta uma curva ao histórico diário em escala logarítmica. O piso, o centro e o teto são "
+        "faixas estatísticas; o modelo não conhece notícias, liquidez, regulação ou mudanças na adoção."
+    )
+
+with tab_pi:
+    pi_view = model.loc[model["data"] >= cycle_repeat["last_date"] - pd.Timedelta(days=2200)]
+    pi_chart = go.Figure()
+    actual_pi = pi_view.loc[pi_view["tipo"] == "historico"]
+    future_pi = pi_view.loc[pi_view["tipo"] == "cenario"]
+    pi_chart.add_trace(go.Scatter(x=actual_pi["data"], y=actual_pi["preco"], name="Preço real", line={"color":"#e5e7eb","width":1}))
+    pi_chart.add_trace(go.Scatter(x=actual_pi["data"], y=actual_pi["pi111"], name="Média 111 dias", line={"color":"#f59e0b","width":2}))
+    pi_chart.add_trace(go.Scatter(x=actual_pi["data"], y=actual_pi["pi350x2"], name="2 × média 350 dias", line={"color":"#22c55e","width":2}))
+    pi_chart.add_trace(go.Scatter(x=future_pi["data"], y=future_pi["pi111"], name="111d no cenário", line={"color":"#f59e0b","width":1.5,"dash":"dot"}))
+    pi_chart.add_trace(go.Scatter(x=future_pi["data"], y=future_pi["pi350x2"], name="350d × 2 no cenário", line={"color":"#22c55e","width":1.5,"dash":"dot"}))
+    pi_chart.add_vline(x=cycle_repeat["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje")
+    if scenario_cross:
+        pi_chart.add_vline(x=scenario_cross, line_color="#ef4444", line_dash="dash", annotation_text="possível alerta no cenário")
+    pi_chart.update_yaxes(type="log", title="Preço do BTC")
+    pi_chart.update_layout(height=540, margin={"l":20,"r":20,"t":30,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
+    st.plotly_chart(pi_chart, width="stretch")
+    st.info("O Pi Cycle dá alerta quando a média de 111 dias cruza para cima de duas vezes a média de 350 dias. Ele procura topo, não fundo.")
 
 with st.expander("Para quem quiser ver a conta por trás"):
     a, b, c, d = st.columns(4)

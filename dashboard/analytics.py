@@ -171,6 +171,17 @@ def build_cycle_projection(df: pd.DataFrame, horizon_days: int = 520) -> dict:
     death_crosses = state_50_100.index[(state_50_100.shift(1) == True) & (state_50_100 == False)]
     last_death_cross = pd.Timestamp(death_crosses[-1]) if len(death_crosses) else None
     cycle_57w = last_death_cross + pd.Timedelta(weeks=57) if last_death_cross else None
+    clock_bottom = provisional_top + pd.Timedelta(days=365)
+    clock_next_top = clock_bottom + pd.Timedelta(days=1064)
+    clock_phases = [
+        (pd.Timestamp("2015-01-14"), pd.Timestamp("2017-12-16"), "alta"),
+        (pd.Timestamp("2017-12-16"), pd.Timestamp("2018-12-15"), "baixa"),
+        (pd.Timestamp("2018-12-15"), pd.Timestamp("2021-11-08"), "alta"),
+        (pd.Timestamp("2021-11-08"), pd.Timestamp("2022-11-09"), "baixa"),
+        (pd.Timestamp("2022-11-09"), provisional_top, "alta"),
+        (provisional_top, clock_bottom, "baixa projetada"),
+        (clock_bottom, clock_next_top, "alta projetada"),
+    ]
     next_crossing_pair = None
     next_crossing = None
     if crossings:
@@ -194,6 +205,102 @@ def build_cycle_projection(df: pd.DataFrame, horizon_days: int = 520) -> dict:
         "consensus_end": consensus_end,
         "consensus_central": consensus_central,
         "last_date": last_date,
+        "clock_1064_365": {
+            "bottom": clock_bottom,
+            "next_top": clock_next_top,
+            "days_to_bottom": (clock_bottom.normalize() - last_date.normalize()).days,
+            "phases": clock_phases,
+        },
+    }
+
+
+def build_cycle_repeat(df: pd.DataFrame, cycle_days: int = 1458) -> dict:
+    """Repete os retornos dos ultimos 1.458 dias como cenario, nao previsao."""
+    work = df[["data", "preco"]].copy()
+    work["data"] = pd.to_datetime(work["data"]).dt.tz_localize(None)
+    work["preco"] = pd.to_numeric(work["preco"], errors="coerce")
+    work = work.dropna().drop_duplicates("data", keep="last").sort_values("data")
+    if len(work) < cycle_days + 1:
+        raise ValueError(f"Sao necessarios ao menos {cycle_days + 1} dias de preco")
+
+    repeated_returns = np.log(work["preco"]).diff().dropna().tail(cycle_days).to_numpy()
+    last_date = pd.Timestamp(work["data"].iloc[-1])
+    future_dates = pd.date_range(last_date + pd.Timedelta(days=1), periods=cycle_days, freq="D")
+    future_prices = float(work["preco"].iloc[-1]) * np.exp(np.cumsum(repeated_returns))
+    future = pd.DataFrame({"data": future_dates, "preco": future_prices, "tipo": "cenario"})
+
+    actual = work.copy()
+    actual["tipo"] = "historico"
+    combined = pd.concat([actual, future], ignore_index=True)
+    combined["ma200"] = combined["preco"].rolling(200).mean()
+    combined["ma730"] = combined["preco"].rolling(730).mean()
+    for multiple in (2, 3, 4, 5):
+        combined[f"ma730x{multiple}"] = combined["ma730"] * multiple
+    combined["ma1458"] = combined["preco"].rolling(cycle_days).mean()
+    combined["pi111"] = combined["preco"].rolling(111).mean()
+    combined["pi350x2"] = combined["preco"].rolling(350).mean() * 2
+
+    genesis = pd.Timestamp("2009-01-03")
+    actual_days = (actual["data"] - genesis).dt.days.clip(lower=1)
+    log_days = np.log10(actual_days)
+    log_prices = np.log10(actual["preco"])
+    power_slope, power_intercept = np.polyfit(log_days, log_prices, 1)
+    residuals = log_prices - (power_intercept + power_slope * log_days)
+    lower_offset, upper_offset = residuals.quantile([0.10, 0.90])
+    all_days = (combined["data"] - genesis).dt.days.clip(lower=1)
+    power_log = power_intercept + power_slope * np.log10(all_days)
+    combined["power_center"] = 10 ** power_log
+    combined["power_lower"] = 10 ** (power_log + lower_offset)
+    combined["power_upper"] = 10 ** (power_log + upper_offset)
+
+    current = combined.loc[combined["data"] == last_date].iloc[-1]
+    investor_ratio = current["preco"] / current["ma730"]
+    investor_score = np.interp(
+        investor_ratio,
+        [0.60, 1.00, 1.50, 3.00, 5.00],
+        [100.0, 90.0, 55.0, 15.0, 0.0],
+    )
+    power_position = (
+        np.log10(current["preco"]) - np.log10(current["power_lower"])
+    ) / (
+        np.log10(current["power_upper"]) - np.log10(current["power_lower"])
+    )
+    power_score = np.interp(
+        power_position,
+        [-0.25, 0.00, 0.50, 1.00, 1.25],
+        [100.0, 90.0, 50.0, 10.0, 0.0],
+    )
+    pi_gap_pct = (current["pi350x2"] / current["pi111"] - 1) * 100
+    future_mask = combined["data"] > last_date
+    pi_above = combined["pi111"] >= combined["pi350x2"]
+    pi_crosses = combined.loc[future_mask & pi_above & ~pi_above.shift(1, fill_value=False)]
+    pi_cross_date = pd.Timestamp(pi_crosses.iloc[0]["data"]) if not pi_crosses.empty else None
+
+    bottom = future.loc[future["preco"].idxmin()]
+    top = future.loc[future["preco"].idxmax()]
+    return {
+        "combined": combined,
+        "future": future,
+        "last_date": last_date,
+        "current_pi111": float(current["pi111"]),
+        "current_pi350x2": float(current["pi350x2"]),
+        "current_ma730": float(current["ma730"]),
+        "current_ma730x5": float(current["ma730x5"]),
+        "investor_ratio": float(investor_ratio),
+        "investor_score": float(investor_score),
+        "current_power_center": float(current["power_center"]),
+        "current_power_lower": float(current["power_lower"]),
+        "current_power_upper": float(current["power_upper"]),
+        "power_position": float(power_position),
+        "power_score": float(power_score),
+        "power_slope": float(power_slope),
+        "pi_gap_pct": float(pi_gap_pct),
+        "pi_triggered": bool(current["pi111"] >= current["pi350x2"]),
+        "pi_cross_date_scenario": pi_cross_date,
+        "bottom_date": pd.Timestamp(bottom["data"]),
+        "bottom_price": float(bottom["preco"]),
+        "top_date": pd.Timestamp(top["data"]),
+        "top_price": float(top["preco"]),
     }
 
 

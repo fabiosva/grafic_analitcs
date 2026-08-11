@@ -7,19 +7,28 @@ import bisect
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
-from collector import calcular_score, ciclo_halving, stoch_rsi  # noqa: E402
+from collector import calcular_score, ciclo_halving, stoch_rsi, _num  # noqa: E402
 
 BD_BASE = "https://bitcoin-data.com/v1"
 FNG_URL = "https://api.alternative.me/fng/?limit=0&format=json"
 COINGECKO_URL = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=365&interval=daily"
+COINMETRICS_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+LOCAL_HISTORY = os.environ.get(
+    "LOCAL_HISTORY_PATH",
+    os.path.join(os.path.dirname(__file__), "data", "history.json"),
+)
+LOCAL_PRICE_HISTORY = os.environ.get(
+    "LOCAL_PRICE_HISTORY_PATH",
+    os.path.join(os.path.dirname(__file__), "data", "price_history.json"),
+)
 
 
 CACHE_DIR = os.environ.get("BACKFILL_CACHE_DIR")
@@ -68,6 +77,105 @@ def fetch_price_by_date() -> dict:
     return out
 
 
+def _rsi_series(prices: list, period: int = 14) -> list:
+    """RSI de Wilder sem dependencia de pandas."""
+    result = [None] * len(prices)
+    if len(prices) <= period:
+        return result
+    gains = [max(prices[i] - prices[i - 1], 0) for i in range(1, len(prices))]
+    losses = [max(prices[i - 1] - prices[i], 0) for i in range(1, len(prices))]
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    result[period] = 100 if avg_loss == 0 else 100 - 100 / (1 + avg_gain / avg_loss)
+    for i in range(period + 1, len(prices)):
+        avg_gain = (avg_gain * (period - 1) + gains[i - 1]) / period
+        avg_loss = (avg_loss * (period - 1) + losses[i - 1]) / period
+        result[i] = 100 if avg_loss == 0 else 100 - 100 / (1 + avg_gain / avg_loss)
+    return result
+
+
+def coinmetrics_fallback() -> list:
+    """Monta historico util em uma unica consulta quando a fonte principal limita acesso."""
+    inicio = "2012-01-01"
+    params = {
+        "assets": "btc",
+        "metrics": "PriceUSD,CapMVRVCur,HashRate,AdrActCnt,SplyCur",
+        "frequency": "1d",
+        "start_time": inicio,
+        "page_size": 10000,
+    }
+    response = requests.get(COINMETRICS_URL, params=params, timeout=45)
+    response.raise_for_status()
+    rows = response.json()["data"]
+    if not rows:
+        raise RuntimeError("Coin Metrics nao retornou dados")
+
+    fng = fetch_fear_greed_by_date()
+    prices = [float(row["PriceUSD"]) for row in rows]
+    rsis = _rsi_series(prices)
+    registros = []
+    for i, row in enumerate(rows):
+        data_str = row["time"][:10]
+        preco = prices[i]
+        mvrv = float(row["CapMVRVCur"]) if row.get("CapMVRVCur") else None
+        realized = preco / mvrv if mvrv else None
+        rsi_window = rsis[max(0, i - 119):i + 1]
+        stoch_k, stoch_d = stoch_rsi(rsi_window)
+        dados = {
+            "preco": preco,
+            "mvrv_zscore": None,
+            "nupl": 1 - (1 / mvrv) if mvrv else None,
+            "sopr": None,
+            "realized_price": realized,
+            "puell_multiple": None,
+            "reserve_risk": None,
+            "rhodl_ratio": None,
+            "fear_greed": fng.get(data_str),
+            "rsi": rsis[i],
+            "sma50": sum(prices[i - 49:i + 1]) / 50 if i >= 49 else None,
+            "sma200": sum(prices[i - 199:i + 1]) / 200 if i >= 199 else None,
+            "stoch_rsi_k": stoch_k,
+            "stoch_rsi_d": stoch_d,
+        }
+        score = calcular_score(dados)
+        day = datetime.strptime(data_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        registro = {
+            "data": data_str,
+            **dados,
+            **score,
+            **ciclo_halving(day),
+            "condicoes": json.dumps(score["condicoes"]),
+            "atualizado_em": datetime.now(timezone.utc).isoformat(),
+        }
+        registros.append(registro)
+    return registros
+
+
+def save_history(registros: list):
+    os.makedirs(os.path.dirname(LOCAL_HISTORY), exist_ok=True)
+    with open(LOCAL_HISTORY, "w", encoding="utf-8") as f:
+        json.dump(registros, f, ensure_ascii=False)
+    print(f"Historico local salvo em: {LOCAL_HISTORY}")
+
+
+def save_cycle_price_history():
+    """Salva preco desde 2012 para SMAs semanais 50/100/200 e estudo de ciclos."""
+    params = {
+        "assets": "btc", "metrics": "PriceUSD", "frequency": "1d",
+        "start_time": "2012-01-01", "page_size": 10000,
+    }
+    response = requests.get(COINMETRICS_URL, params=params, timeout=45)
+    response.raise_for_status()
+    prices = [
+        {"data": row["time"][:10], "preco": float(row["PriceUSD"])}
+        for row in response.json()["data"] if row.get("PriceUSD")
+    ]
+    os.makedirs(os.path.dirname(LOCAL_PRICE_HISTORY), exist_ok=True)
+    with open(LOCAL_PRICE_HISTORY, "w", encoding="utf-8") as f:
+        json.dump(prices, f, ensure_ascii=False)
+    print(f"Historico longo de preco salvo: {len(prices)} dias")
+
+
 class SerieComFallback:
     """
     Indexa um dict {data: item} por data e permite buscar o valor mais
@@ -93,6 +201,9 @@ class SerieComFallback:
 
 
 def upsert_batch(registros: list):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        print("SUPABASE_URL/KEY nao configurados - salvando apenas o historico local.")
+        return
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -111,14 +222,30 @@ def upsert_batch(registros: list):
 
 def main():
     print("Buscando historico on-chain...")
-    mvrv = fetch_full("mvrv-zscore", "mvrv.json")
-    nupl = fetch_full("nupl", "nupl.json")
-    sopr = fetch_full("sopr", "sopr.json")
-    realized = fetch_full("realized-price", "realized.json")
-    puell = fetch_full("puell-multiple", "puell.json")
-    reserve_risk = fetch_full("reserve-risk", "reserve_risk.json")
-    rhodl = fetch_full("rhodl-ratio", "rhodl.json")
-    ti = fetch_full("technical-indicators", "ti.json")
+    try:
+        mvrv = fetch_full("mvrv-zscore", "mvrv.json")
+        nupl = fetch_full("nupl", "nupl.json")
+        sopr = fetch_full("sopr", "sopr.json")
+        realized = fetch_full("realized-price", "realized.json")
+        puell = fetch_full("puell-multiple", "puell.json")
+        reserve_risk = fetch_full("reserve-risk", "reserve_risk.json")
+        rhodl = fetch_full("rhodl-ratio", "rhodl.json")
+        ti = fetch_full("technical-indicators", "ti.json")
+        cvdd = fetch_full("cvdd", "cvdd.json")
+        balanced = fetch_full("balanced-price", "balanced-price.json")
+        terminal = fetch_full("terminal-price", "terminal-price.json")
+        lth_realized = fetch_full("lth-realized-price", "lth-realized-price.json")
+        hashribbons = fetch_full("hashribbons", "hashribbons.json")
+        golden = fetch_full("golden-ratio-multiplier", "golden-ratio-multiplier.json")
+    except requests.RequestException as error:
+        print(f"Fonte principal indisponivel ({error}). Usando fallback Coin Metrics...")
+        registros = coinmetrics_fallback()
+        print(f"Total de registros gerados: {len(registros)}")
+        save_history(registros)
+        save_cycle_price_history()
+        upsert_batch(registros)
+        print("Backfill fallback concluido.")
+        return
 
     print("Buscando Fear & Greed historico...")
     fng = fetch_fear_greed_by_date()
@@ -136,6 +263,12 @@ def main():
     reserve_risk_s = SerieComFallback(reserve_risk)
     rhodl_s = SerieComFallback(rhodl)
     ti_s = SerieComFallback(ti)
+    cvdd_s = SerieComFallback(cvdd)
+    balanced_s = SerieComFallback(balanced)
+    terminal_s = SerieComFallback(terminal)
+    lth_realized_s = SerieComFallback(lth_realized)
+    hashribbons_s = SerieComFallback(hashribbons)
+    golden_s = SerieComFallback(golden)
 
     ti_datas_ordenadas = sorted(ti.keys())
     rsi_por_data_ordenada = [ti[d].get("rsi") for d in ti_datas_ordenadas]
@@ -155,6 +288,15 @@ def main():
             "rsi": ti_s.valor(data_str, "rsi"),
             "sma50": ti_s.valor(data_str, "sma50"),
             "sma200": ti_s.valor(data_str, "sma200"),
+            "cvdd": _num(cvdd_s.valor(data_str, "cvdd")),
+            "balanced_price": _num(balanced_s.valor(data_str, "balancedPrice")),
+            "terminal_price": _num(terminal_s.valor(data_str, "terminalPrice")),
+            "lth_realized_price": _num(lth_realized_s.valor(data_str, "lthRealizedPrice")),
+            "hashribbons": hashribbons_s.valor(data_str, "hashribbons"),
+            "gm_sma350": _num(golden_s.valor(data_str, "sma350")),
+            "gm_x16": _num(golden_s.valor(data_str, "x16")),
+            "gm_x2": _num(golden_s.valor(data_str, "x2")),
+            "gm_x2618": _num(golden_s.valor(data_str, "x2618")),
         }
 
         idx = bisect.bisect_right(ti_datas_ordenadas, data_str) - 1
@@ -179,6 +321,8 @@ def main():
         registros.append(registro)
 
     print(f"Total de registros a salvar: {len(registros)}")
+    save_history(registros)
+    save_cycle_price_history()
     upsert_batch(registros)
     print("Backfill concluido.")
 

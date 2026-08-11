@@ -6,11 +6,13 @@ Fontes 100% gratuitas: bitcoin-data.com, alternative.me, coinbase
 import requests
 import json
 import os
+import time
 from datetime import datetime, timezone, timedelta
 
 BD_BASE = "https://bitcoin-data.com/v1"
 FNG_URL = "https://api.alternative.me/fng/?limit=1"
 COINBASE_URL = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
@@ -20,18 +22,85 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 HALVINGS = ["2012-11-28", "2016-07-09", "2020-05-11", "2024-04-20"]
 FUNDOS_POS_HALVING = ["2015-01-14", "2018-12-15", "2022-11-21"]
 
+# Modelos de preco de ciclo e capitulacao de mineradores. Sao os mesmos
+# indicadores que o Bitcoin Magazine Pro publica, mas mudam devagar - nao
+# faz diferenca busca-los todo dia.
+#
+# O plano gratuito da bitcoin-data.com da 10 requisicoes por hora e 15 por
+# dia, e as metricas principais ja consomem 8. Por isso estes entram em
+# rodizio: EXTRAS_POR_DIA por vez, cada um se renovando a cada 3 dias.
+# Quando um deles nao e buscado (ou a API recusa), o painel simplesmente
+# mantem o ultimo valor conhecido, que para modelos assim e suficiente.
+EXTRAS = [
+    ("cvdd", {"cvdd": "cvdd"}),
+    ("balanced-price", {"balanced_price": "balancedPrice"}),
+    ("terminal-price", {"terminal_price": "terminalPrice"}),
+    ("lth-realized-price", {"lth_realized_price": "lthRealizedPrice"}),
+    ("hashribbons", {"hashribbons": "hashribbons"}),
+    ("golden-ratio-multiplier", {
+        "gm_sma350": "sma350", "gm_x16": "x16", "gm_x2": "x2", "gm_x2618": "x2618",
+    }),
+]
+EXTRAS_POR_DIA = 2
+
+
+def _num(valor):
+    """Alguns endpoints devolvem numero como texto (ex.: lthRealizedPrice)."""
+    if valor is None:
+        return None
+    try:
+        return float(valor)
+    except (TypeError, ValueError):
+        return None
+
+
+def fetch_row(endpoint: str):
+    """Busca a linha mais recente inteira, para endpoints com varios campos."""
+    for tentativa in range(3):
+        try:
+            r = requests.get(f"{BD_BASE}/{endpoint}/last", timeout=20)
+            r.raise_for_status()
+            data = r.json()
+            return data if isinstance(data, dict) else data[-1]
+        except Exception as e:
+            if tentativa == 2:
+                print(f"Erro em {endpoint} apos 3 tentativas: {e}")
+                return None
+            time.sleep(1.5 * (tentativa + 1))
+
+
+def coletar_extras(agora: datetime) -> dict:
+    """Escolhe EXTRAS_POR_DIA metricas do rodizio com base na data."""
+    total = len(EXTRAS)
+    inicio = (agora.toordinal() * EXTRAS_POR_DIA) % total
+    escolhidos = [EXTRAS[(inicio + i) % total] for i in range(min(EXTRAS_POR_DIA, total))]
+
+    resultado = {}
+    for endpoint, mapa in escolhidos:
+        print(f"Rodizio do dia: buscando {endpoint}")
+        linha = fetch_row(endpoint)
+        if not linha:
+            continue
+        for coluna, campo in mapa.items():
+            bruto = linha.get(campo)
+            # hashribbons devolve o rotulo "Up"/"Down"; o resto e numerico.
+            resultado[coluna] = bruto if coluna == "hashribbons" else _num(bruto)
+    return resultado
+
 
 def fetch_latest(endpoint: str, key: str):
-    try:
-        r = requests.get(f"{BD_BASE}/{endpoint}", timeout=15)
-        r.raise_for_status()
-        data = r.json()
-        if not data:
-            return None
-        return data[-1].get(key)
-    except Exception as e:
-        print(f"Erro em {endpoint}: {e}")
-        return None
+    """Busca o ponto mais recente com retry e payload pequeno."""
+    for attempt in range(3):
+        try:
+            r = requests.get(f"{BD_BASE}/{endpoint}/last", timeout=20)
+            r.raise_for_status()
+            data = r.json()
+            return data.get(key) if isinstance(data, dict) else data[-1].get(key)
+        except Exception as e:
+            if attempt == 2:
+                print(f"Erro em {endpoint} apos 3 tentativas: {e}")
+                return None
+            time.sleep(1.5 * (attempt + 1))
 
 
 def fetch_fear_greed():
@@ -121,6 +190,14 @@ def calcular_score(dados: dict) -> dict:
     }
 
     obrigatorias_ativas = sum(condicoes.values())
+    obrigatorias_disponiveis = sum(
+        [
+            dados.get("mvrv_zscore") is not None,
+            dados.get("fear_greed") is not None,
+            dados.get("rsi") is not None,
+            dados.get("preco") is not None and dados.get("realized_price") is not None,
+        ]
+    )
 
     bonus = 0
     if dados.get("nupl") is not None and dados["nupl"] < 0:
@@ -143,9 +220,11 @@ def calcular_score(dados: dict) -> dict:
         bonus += 10
 
     score_obrigatorias = (obrigatorias_ativas / 4) * 70
-    score_final = min(100, score_obrigatorias + bonus)
+    score_final = min(100, score_obrigatorias + bonus) if obrigatorias_disponiveis >= 3 else None
 
-    if obrigatorias_ativas == 4:
+    if obrigatorias_disponiveis < 3:
+        classificacao = "Dados insuficientes"
+    elif obrigatorias_ativas == 4:
         classificacao = "FUNDO ESTRUTURAL"
     elif obrigatorias_ativas >= 2:
         classificacao = "Zona de acumulacao"
@@ -157,7 +236,7 @@ def calcular_score(dados: dict) -> dict:
     return {
         "condicoes": condicoes,
         "obrigatorias_ativas": obrigatorias_ativas,
-        "score_final": round(score_final, 1),
+        "score_final": round(score_final, 1) if score_final is not None else None,
         "classificacao": classificacao,
     }
 
@@ -211,6 +290,8 @@ def main():
         dados["rsi"] = dados["sma50"] = dados["sma200"] = None
         dados["stoch_rsi_k"] = dados["stoch_rsi_d"] = None
 
+    dados.update(coletar_extras(agora))
+
     score = calcular_score(dados)
     halving = ciclo_halving(agora)
 
@@ -227,9 +308,32 @@ def main():
 
     salvar_supabase(registro)
 
-    os.makedirs("data", exist_ok=True)
-    with open("data/latest.json", "w", encoding="utf-8") as f:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    latest_path = os.path.join(DATA_DIR, "latest.json")
+    history_path = os.path.join(DATA_DIR, "history.json")
+    prices_path = os.path.join(DATA_DIR, "price_history.json")
+    with open(latest_path, "w", encoding="utf-8") as f:
         json.dump(registro, f, indent=2, ensure_ascii=False)
+
+    history = []
+    if os.path.exists(history_path):
+        with open(history_path, encoding="utf-8") as f:
+            history = json.load(f)
+    history = [row for row in history if row.get("data") != registro["data"]]
+    history.append(registro)
+    history.sort(key=lambda row: row.get("data", ""))
+    with open(history_path, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2, ensure_ascii=False)
+
+    prices = []
+    if os.path.exists(prices_path):
+        with open(prices_path, encoding="utf-8") as f:
+            prices = json.load(f)
+    prices = [row for row in prices if row.get("data") != registro["data"]]
+    prices.append({"data": registro["data"], "preco": registro["preco"]})
+    prices.sort(key=lambda row: row.get("data", ""))
+    with open(prices_path, "w", encoding="utf-8") as f:
+        json.dump(prices, f, ensure_ascii=False)
 
     print("=== Coleta finalizada ===")
 
