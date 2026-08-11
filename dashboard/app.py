@@ -558,9 +558,10 @@ for z in zones:
     cor = "#ef4444" if z["lado"].startswith("Comprados") else "#22c55e"
     # alavancagens altas ficam mais "quentes" (mais perto do preço, liquidam com um movimento menor)
     intensidade = 1 - (LEVERAGE_TIERS.index(z["alavancagem"]) / len(LEVERAGE_TIERS)) * 0.7
+    posicao = "left" if z["lado"].startswith("Comprados") else "right"
     liq_fig.add_hline(
         y=z["preco"], line_color=cor, line_width=1 + intensidade * 3, opacity=0.35 + intensidade * 0.5,
-        annotation_text=f"{z['alavancagem']}x {z['lado'].split()[0]}", annotation_position="left",
+        annotation_text=f"{z['alavancagem']}x", annotation_position=posicao,
         annotation_font_size=10,
     )
 y_min = min([btc_price] + [z["preco"] for z in zones]) * 0.97
@@ -584,7 +585,7 @@ lz1.metric(
     ),
 )
 if funding_rate is not None:
-    lado_maioria = "comprados, pagando pra manter a posição (alta)" if funding_rate > 0 else "vendidos, pagando pra manter a posição (baixa)"
+    lado_maioria = "Comprados (alta)" if funding_rate > 0 else "Vendidos (baixa)"
     lz2.metric(
         "Maioria das contas está", lado_maioria, f"{funding_rate:.4f}% / 8h",
         help=(
