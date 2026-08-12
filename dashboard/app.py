@@ -679,7 +679,6 @@ else:
 scenario_cross = cycle_repeat["pi_cross_date_scenario"]
 weekly_200 = float(projection["smas"][200].dropna().iloc[-1])
 
-cvdd, _ = latest_value(df, "cvdd")
 balanced_price, _ = latest_value(df, "balanced_price")
 terminal_price, _ = latest_value(df, "terminal_price")
 lth_realized_price, _ = latest_value(df, "lth_realized_price")
@@ -704,15 +703,6 @@ if balanced_price is not None:
     bottom_levels.append(
         ("Preço equilibrado", float(balanced_price),
          "Modelo que soma custo de mineração e custo dos investidores (Balanced Price)")
-    )
-if cvdd is not None:
-    bottom_levels.append(
-        ("Piso histórico de fundos", float(cvdd),
-         "Nível que marcou o fundo em ciclos anteriores (CVDD). ATENÇÃO: comparamos com outros sites "
-         "(LookIntoBitcoin, Bitcoin Magazine Pro) e eles mostram algo em torno de US$ 44 mil–49 mil pra "
-         "essa mesma data — bem diferente do valor aqui. A fórmula do CVDD usa uma constante de escala "
-         "meio arbitrária, e nossa fonte gratuita provavelmente está calculando ela errado. Não confie "
-         "nesse número específico; use-o só pra ver a tendência (subindo/descendo), não o valor exato.")
     )
 if gm_sma350 is not None:
     bottom_levels.append(
