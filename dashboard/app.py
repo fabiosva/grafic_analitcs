@@ -708,9 +708,11 @@ if balanced_price is not None:
 if cvdd is not None:
     bottom_levels.append(
         ("Piso histórico de fundos", float(cvdd),
-         "Nível que marcou o fundo em ciclos anteriores (CVDD). Atenção: sites diferentes calculam esse "
-         "indicador de jeitos diferentes — o valor aqui pode vir bem mais baixo que em outros trackers "
-         "conhecidos (ex: LookIntoBitcoin). Trate como referência de baixa confiança, não como piso confirmado.")
+         "Nível que marcou o fundo em ciclos anteriores (CVDD). ATENÇÃO: comparamos com outros sites "
+         "(LookIntoBitcoin, Bitcoin Magazine Pro) e eles mostram algo em torno de US$ 44 mil–49 mil pra "
+         "essa mesma data — bem diferente do valor aqui. A fórmula do CVDD usa uma constante de escala "
+         "meio arbitrária, e nossa fonte gratuita provavelmente está calculando ela errado. Não confie "
+         "nesse número específico; use-o só pra ver a tendência (subindo/descendo), não o valor exato.")
     )
 if gm_sma350 is not None:
     bottom_levels.append(
