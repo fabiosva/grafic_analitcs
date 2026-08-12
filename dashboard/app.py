@@ -708,7 +708,9 @@ if balanced_price is not None:
 if cvdd is not None:
     bottom_levels.append(
         ("Piso histórico de fundos", float(cvdd),
-         "Nível que marcou o fundo em ciclos anteriores (CVDD)")
+         "Nível que marcou o fundo em ciclos anteriores (CVDD). Atenção: sites diferentes calculam esse "
+         "indicador de jeitos diferentes — o valor aqui pode vir bem mais baixo que em outros trackers "
+         "conhecidos (ex: LookIntoBitcoin). Trate como referência de baixa confiança, não como piso confirmado.")
     )
 if gm_sma350 is not None:
     bottom_levels.append(
