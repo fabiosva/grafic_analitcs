@@ -829,7 +829,7 @@ with tab_timeline:
             future = projection["projected_smas"][period]
             timeline.add_trace(go.Scatter(x=future.index, y=future.values, showlegend=False, line={"color":colors[period],"width":2,"dash":"dash"}))
     timeline.update_xaxes(range=[history["data"].iloc[0], projection["cycle_57w"] + pd.Timedelta(days=35)])
-    timeline.update_yaxes(type="log", title="Preço do BTC")
+    timeline.update_yaxes(type="log", title="Preço do BTC", automargin=True, dtick=1, tickformat="~s")
     timeline.update_layout(title="Preço do BTC ao longo do tempo, com a janela provável do próximo fundo", height=520, margin={"l":20,"r":20,"t":60,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
     st.plotly_chart(timeline, width="stretch")
     st.caption(
@@ -874,7 +874,7 @@ with tab_liquidacao:
         height=380, margin={"l": 20, "r": 20, "t": 40, "b": 20},
         paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color": "#cbd5e1"},
         xaxis={"visible": False, "range": [0, 1]},
-        yaxis={"title": "Preço estimado da zona (US$)", "range": [y_min, y_max]},
+        yaxis={"title": "Preço estimado da zona (US$)", "range": [y_min, y_max], "automargin": True},
         showlegend=False,
     )
     st.plotly_chart(liq_fig, width="stretch")
@@ -926,7 +926,7 @@ with tab_cycle:
     cycle_chart.add_vline(x=cycle_repeat["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje")
     cycle_chart.add_annotation(x=cycle_repeat["bottom_date"], y=cycle_repeat["bottom_price"], text=f"fundo do cenário<br>US$ {cycle_repeat['bottom_price']:,.0f}", showarrow=True, arrowcolor="#22c55e")
     cycle_chart.add_annotation(x=cycle_repeat["top_date"], y=cycle_repeat["top_price"], text=f"topo do cenário<br>US$ {cycle_repeat['top_price']:,.0f}", showarrow=True, arrowcolor="#ef4444")
-    cycle_chart.update_yaxes(type="log", title="Preço do BTC")
+    cycle_chart.update_yaxes(type="log", title="Preço do BTC", automargin=True, dtick=1, tickformat="~s")
     cycle_chart.update_layout(title="Cenário de repetição dos últimos 1.458 dias", height=540, margin={"l":20,"r":20,"t":50,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
     st.plotly_chart(cycle_chart, width="stretch")
     st.info("Este não é um preço previsto: o gráfico pega as variações dos últimos 1.458 dias e repete a mesma sequência a partir de hoje.")
@@ -948,7 +948,7 @@ with tab_clock:
     clock_chart.add_vline(x=projection["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje")
     clock_chart.add_vline(x=projection["clock_1064_365"]["bottom"], line_color="#22c55e", line_dash="dash", annotation_text="fundo pelo relógio")
     clock_chart.add_vline(x=projection["clock_1064_365"]["next_top"], line_color="#ef4444", line_dash="dash", annotation_text="próximo topo pelo relógio")
-    clock_chart.update_yaxes(type="log", title="Preço do BTC")
+    clock_chart.update_yaxes(type="log", title="Preço do BTC", automargin=True, dtick=1, tickformat="~s")
     clock_chart.update_xaxes(range=[pd.Timestamp("2014-01-01"), projection["clock_1064_365"]["next_top"] + pd.Timedelta(days=60)])
     clock_chart.update_layout(title="Relógio de 1.064 dias (fundo→topo) e 365 dias (topo→fundo)", height=540, margin={"l":20,"r":20,"t":50,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
     st.plotly_chart(clock_chart, width="stretch")
@@ -967,7 +967,7 @@ with tab_investor:
     if show_2y_bands:
         for multiple, color in ((2, "#fbbf24"), (3, "#fb923c"), (4, "#f87171")):
             investor_chart.add_trace(go.Scatter(x=investor["data"], y=investor[f"ma730x{multiple}"], name=f"Média 2 anos × {multiple}", line={"color":color,"width":1,"dash":"dot"}))
-    investor_chart.update_yaxes(type="log", title="Preço do BTC")
+    investor_chart.update_yaxes(type="log", title="Preço do BTC", automargin=True, dtick=1, tickformat="~s")
     investor_chart.update_layout(title="Preço vs média de 2 anos (Investor Tool)", height=540, margin={"l":20,"r":20,"t":50,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
     st.plotly_chart(investor_chart, width="stretch")
     if cycle_repeat["investor_ratio"] <= 1:
@@ -985,7 +985,7 @@ with tab_power:
     power_actual = model.loc[model["tipo"] == "historico"]
     power_chart.add_trace(go.Scatter(x=power_actual["data"], y=power_actual["preco"], name="Preço real", line={"color":"#e5e7eb","width":1.2}))
     power_chart.add_vline(x=cycle_repeat["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje")
-    power_chart.update_yaxes(type="log", title="Preço do BTC")
+    power_chart.update_yaxes(type="log", title="Preço do BTC", automargin=True, dtick=1, tickformat="~s")
     power_chart.update_layout(title="Corredor estatístico Power Law (regressão log-log)", height=540, margin={"l":20,"r":20,"t":50,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
     st.plotly_chart(power_chart, width="stretch")
     st.info(
@@ -1006,7 +1006,7 @@ with tab_pi:
     pi_chart.add_vline(x=cycle_repeat["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje")
     if scenario_cross:
         pi_chart.add_vline(x=scenario_cross, line_color="#ef4444", line_dash="dash", annotation_text="possível alerta no cenário")
-    pi_chart.update_yaxes(type="log", title="Preço do BTC")
+    pi_chart.update_yaxes(type="log", title="Preço do BTC", automargin=True, dtick=1, tickformat="~s")
     pi_chart.update_layout(title="Pi Cycle Top (SMA 111 dias × 2 SMA 350 dias)", height=540, margin={"l":20,"r":20,"t":50,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
     st.plotly_chart(pi_chart, width="stretch")
     st.info("O Pi Cycle dá alerta quando a média de 111 dias cruza para cima de duas vezes a média de 350 dias. Ele procura topo, não fundo.")
