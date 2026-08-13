@@ -816,11 +816,11 @@ with tab_timeline:
     timeline = go.Figure()
     history = projection["work"].tail(1100)
     timeline.add_trace(go.Scatter(x=history["data"], y=history["preco"], name="Bitcoin", line={"color":"#e5e7eb","width":1.5}))
-    timeline.add_vrect(x0=projection["halving"]["start"], x1=projection["halving"]["end"], fillcolor="#7c3aed", opacity=.12, line_width=0, annotation_text="conta do halving", annotation_position="top left")
-    timeline.add_vrect(x0=projection["top"]["start"], x1=projection["top"]["end"], fillcolor="#ef4444", opacity=.14, line_width=0, annotation_text="conta do topo", annotation_position="top right")
-    timeline.add_vrect(x0=window_start, x1=window_end, fillcolor="#2563eb", opacity=.28, line_width=0, annotation_text="ONDE AS DUAS SE ENCONTRAM", annotation_position="bottom left")
-    timeline.add_vline(x=projection["last_date"], line_color="#64748b", line_dash="dot", annotation_text="hoje")
-    timeline.add_vline(x=projection["cycle_57w"], line_color="#3b82f6", line_dash="dot", annotation_text="57 semanas")
+    timeline.add_vrect(x0=projection["halving"]["start"], x1=projection["halving"]["end"], fillcolor="#7c3aed", opacity=.12, line_width=0, annotation_text="halving", annotation_position="top left", annotation_font_size=10, annotation_yshift=0)
+    timeline.add_vrect(x0=projection["top"]["start"], x1=projection["top"]["end"], fillcolor="#ef4444", opacity=.14, line_width=0, annotation_text="topo", annotation_position="top right", annotation_font_size=10, annotation_yshift=16)
+    timeline.add_vrect(x0=window_start, x1=window_end, fillcolor="#2563eb", opacity=.28, line_width=0, annotation_text="faixa provável", annotation_position="bottom", annotation_font_size=10, annotation_yshift=0)
+    timeline.add_vline(x=projection["last_date"], line_color="#64748b", line_dash="dot", annotation_text="hoje", annotation_position="top", annotation_textangle=-90, annotation_font_size=10, annotation_yshift=32)
+    timeline.add_vline(x=projection["cycle_57w"], line_color="#3b82f6", line_dash="dot", annotation_text="57 sem.", annotation_position="bottom", annotation_textangle=-90, annotation_font_size=10, annotation_yshift=-18)
     if show_smas:
         colors = {50:"#ef3340",100:"#22c55e",200:"#eab308"}
         for period in (50,100,200):
@@ -935,19 +935,21 @@ with tab_clock:
     clock_chart = go.Figure()
     clock_history = projection["work"].loc[projection["work"]["data"] >= pd.Timestamp("2014-01-01")]
     clock_chart.add_trace(go.Scatter(x=clock_history["data"], y=clock_history["preco"], name="Preço real", line={"color":"#e5e7eb","width":1.3}))
-    for start, end, phase in projection["clock_1064_365"]["phases"]:
+    for i, (start, end, phase) in enumerate(projection["clock_1064_365"]["phases"]):
         is_up = "alta" in phase
         clock_chart.add_vrect(
             x0=start, x1=end,
             fillcolor="#166534" if is_up else "#7f1d1d",
             opacity=.20 if "projetada" not in phase else .12,
             line_width=0,
-            annotation_text=("1.064 dias" if is_up else "365 dias") + (" · cenário" if "projetada" in phase else ""),
+            annotation_text=("1.064d" if is_up else "365d") + (" · cenário" if "projetada" in phase else ""),
             annotation_position="top left",
+            annotation_font_size=9,
+            annotation_yshift=45 if i % 2 == 0 else 0,
         )
-    clock_chart.add_vline(x=projection["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje")
-    clock_chart.add_vline(x=projection["clock_1064_365"]["bottom"], line_color="#22c55e", line_dash="dash", annotation_text="fundo pelo relógio")
-    clock_chart.add_vline(x=projection["clock_1064_365"]["next_top"], line_color="#ef4444", line_dash="dash", annotation_text="próximo topo pelo relógio")
+    clock_chart.add_vline(x=projection["last_date"], line_color="#94a3b8", line_dash="dot", annotation_text="hoje", annotation_position="top", annotation_textangle=-90, annotation_font_size=10, annotation_yshift=30)
+    clock_chart.add_vline(x=projection["clock_1064_365"]["bottom"], line_color="#22c55e", line_dash="dash", annotation_text="fundo", annotation_position="bottom", annotation_textangle=-90, annotation_font_size=10, annotation_yshift=0)
+    clock_chart.add_vline(x=projection["clock_1064_365"]["next_top"], line_color="#ef4444", line_dash="dash", annotation_text="topo", annotation_position="top right", annotation_textangle=-90, annotation_font_size=10, annotation_yshift=-15)
     clock_chart.update_yaxes(type="log", title="Preço do BTC", automargin=True, dtick=1, tickformat="~s")
     clock_chart.update_xaxes(range=[pd.Timestamp("2014-01-01"), projection["clock_1064_365"]["next_top"] + pd.Timedelta(days=60)])
     clock_chart.update_layout(title="Relógio de 1.064 dias (fundo→topo) e 365 dias (topo→fundo)", height=540, margin={"l":20,"r":20,"t":50,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
