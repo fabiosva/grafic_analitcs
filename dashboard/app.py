@@ -638,33 +638,6 @@ with c1: indicator_bucket("Já estão a favor", "●", confirmed, "#22c55e")
 with c2: indicator_bucket("Mais ou menos", "●", transition, "#eab308")
 with c3: indicator_bucket("Ainda contra", "●", not_confirmed, "#ef4444")
 
-st.subheader("Onde estamos na linha do tempo")
-show_smas = st.toggle("Mostrar as médias de preço no gráfico", value=False)
-timeline = go.Figure()
-history = projection["work"].tail(1100)
-timeline.add_trace(go.Scatter(x=history["data"], y=history["preco"], name="Bitcoin", line={"color":"#e5e7eb","width":1.5}))
-timeline.add_vrect(x0=projection["halving"]["start"], x1=projection["halving"]["end"], fillcolor="#7c3aed", opacity=.12, line_width=0, annotation_text="conta do halving", annotation_position="top left")
-timeline.add_vrect(x0=projection["top"]["start"], x1=projection["top"]["end"], fillcolor="#ef4444", opacity=.14, line_width=0, annotation_text="conta do topo", annotation_position="top right")
-timeline.add_vrect(x0=window_start, x1=window_end, fillcolor="#2563eb", opacity=.28, line_width=0, annotation_text="ONDE AS DUAS SE ENCONTRAM", annotation_position="bottom left")
-timeline.add_vline(x=projection["last_date"], line_color="#64748b", line_dash="dot", annotation_text="hoje")
-timeline.add_vline(x=projection["cycle_57w"], line_color="#3b82f6", line_dash="dot", annotation_text="57 semanas")
-if show_smas:
-    colors = {50:"#ef3340",100:"#22c55e",200:"#eab308"}
-    for period in (50,100,200):
-        sma = projection["smas"][period]
-        timeline.add_trace(go.Scatter(x=sma.index, y=sma.values, name=f"Média de {period} semanas", line={"color":colors[period],"width":2}))
-        future = projection["projected_smas"][period]
-        timeline.add_trace(go.Scatter(x=future.index, y=future.values, showlegend=False, line={"color":colors[period],"width":2,"dash":"dash"}))
-timeline.update_xaxes(range=[history["data"].iloc[0], projection["cycle_57w"] + pd.Timedelta(days=35)])
-timeline.update_yaxes(type="log", title="Preço do BTC")
-timeline.update_layout(title="Preço do BTC ao longo do tempo, com a janela provável do próximo fundo", height=520, margin={"l":20,"r":20,"t":60,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
-st.plotly_chart(timeline, width="stretch")
-st.caption(
-    "A faixa azul é onde as duas contas concordam — o período mais provável. "
-    "A linha de 57 semanas é aquele seu padrão de 399 dias; deixei separado porque tem menos histórico para comprovar. "
-    "O preço está numa escala que espreme os números grandes, para dar para ver os ciclos antigos junto com os de hoje."
-)
-
 st.subheader("Mapa dos possíveis fundos")
 st.caption(
     f"Bitcoin hoje: US$ {btc_price:,.0f}. Cada cartão mostra um nível associado a fundos, se o preço já chegou nele "
@@ -801,81 +774,6 @@ with c4:
             unsafe_allow_html=True,
         )
 
-st.subheader("Zonas estimadas de liquidação")
-oi_usd, _ = latest_value(df, "open_interest_usd")
-funding_rate, _ = latest_value(df, "funding_rate")
-st.caption(
-    "Onde uma massa de posições alavancadas pode ser forçada a fechar se o preço bater ali. "
-    "Não é o mapa de calor real da corretora (esse é dado pago e fechado) — é uma conta feita a partir do preço "
-    "de hoje e das alavancagens mais usadas em corretoras de futuros (5x a 100x). Quanto mais alavancagem, mais perto do preço "
-    "atual fica a zona de risco."
-)
-
-LEVERAGE_TIERS = [5, 10, 25, 50, 100]
-zones = []
-for lev in LEVERAGE_TIERS:
-    zones.append({"lado": "Comprados (long)", "alavancagem": lev, "preco": btc_price * (1 - 1 / lev)})
-    zones.append({"lado": "Vendidos (short)", "alavancagem": lev, "preco": btc_price * (1 + 1 / lev)})
-
-liq_fig = go.Figure()
-liq_fig.add_hline(y=btc_price, line_color="#f8fafc", line_width=2,
-                   annotation_text=f"Preço agora · US$ {btc_price:,.0f}", annotation_position="right")
-for z in zones:
-    cor = "#ef4444" if z["lado"].startswith("Comprados") else "#22c55e"
-    # alavancagens altas ficam mais "quentes" (mais perto do preço, liquidam com um movimento menor)
-    intensidade = 1 - (LEVERAGE_TIERS.index(z["alavancagem"]) / len(LEVERAGE_TIERS)) * 0.7
-    posicao = "left" if z["lado"].startswith("Comprados") else "right"
-    liq_fig.add_hline(
-        y=z["preco"], line_color=cor, line_width=1 + intensidade * 3, opacity=0.35 + intensidade * 0.5,
-        annotation_text=f"{z['alavancagem']}x", annotation_position=posicao,
-        annotation_font_size=10,
-    )
-y_min = min([btc_price] + [z["preco"] for z in zones]) * 0.97
-y_max = max([btc_price] + [z["preco"] for z in zones]) * 1.03
-liq_fig.update_layout(
-    title="Zonas estimadas de liquidação por alavancagem, em torno do preço atual",
-    height=380, margin={"l": 20, "r": 20, "t": 40, "b": 20},
-    paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color": "#cbd5e1"},
-    xaxis={"visible": False, "range": [0, 1]},
-    yaxis={"title": "Preço estimado da zona (US$)", "range": [y_min, y_max]},
-    showlegend=False,
-)
-st.plotly_chart(liq_fig, width="stretch")
-with st.expander("Ver as zonas de liquidação em tabela (alternativa ao gráfico)"):
-    st.dataframe(
-        pd.DataFrame([{"Alavancagem": f"{z['alavancagem']}x", "Lado": z["lado"], "Preço estimado (US$)": round(z["preco"])} for z in zones]),
-        hide_index=True, width="stretch",
-    )
-
-lz1, lz2 = st.columns(2)
-lz1.metric(
-    "Dinheiro alavancado em aberto (Binance)",
-    f"US$ {oi_usd/1e9:.2f} bi" if oi_usd else "N/D",
-    help=(
-        "Open Interest: soma de todas as posições com alavancagem ainda abertas no futuro perpétuo de BTC "
-        "na Binance. Quanto maior, mais dinheiro alavancado pode virar liquidação forçada se o preço se mover forte."
-    ),
-)
-if funding_rate is not None:
-    lado_maioria = "Comprados (alta)" if funding_rate > 0 else "Vendidos (baixa)"
-    lz2.metric(
-        "Maioria das contas está", lado_maioria, f"{funding_rate:.4f}% / 8h",
-        help=(
-            "Funding rate: taxa que quem está de um lado paga pra quem está do outro, a cada 8h, no futuro "
-            "perpétuo. Positiva = mais gente comprada pagando pra segurar a posição (mercado inclinado pra alta). "
-            "Negativa = mais gente vendida pagando (mercado inclinado pra baixa). Muita gente do mesmo lado é "
-            "o combustível para uma liquidação em cadeia se o preço for contra a maioria."
-        ),
-    )
-else:
-    lz2.metric("Maioria das contas está", "N/D")
-st.caption(
-    "Se o preço cair até perto de uma linha vermelha, gente comprada com aquela alavancagem é liquidada "
-    "à força (venda forçada, empurra o preço mais pra baixo ainda). Se subir até uma linha verde, é o "
-    "inverso com quem está vendido. Fundos de mercado às vezes acontecem quando essa venda forçada "
-    "some — os que iam vender à força já venderam."
-)
-
 st.subheader("Alertas de topo e planejamento de saída")
 st.caption("Esta parte é somente sobre possível topo. Ela não entra na confirmação de fundo de hoje.")
 t1, t2, t3, t4 = st.columns(4)
@@ -908,7 +806,113 @@ if gm_x2618 is not None:
     u3.metric("Régua Golden Ratio × 2,618", f"US$ {gm_x2618:,.0f}", help="Proporção áurea sobre a média de 350 dias — banda clássica de topo de ciclo")
 
 st.subheader("Gráficos detalhados")
-tab_cycle, tab_clock, tab_investor, tab_power, tab_pi = st.tabs(["Cenário de 1.458 dias", "Relógio 1064/365", "Média de 2 anos", "Power Law", "Pi Cycle Top"])
+tab_timeline, tab_liquidacao, tab_cycle, tab_clock, tab_investor, tab_power, tab_pi = st.tabs([
+    "Linha do tempo", "Zonas de liquidação", "Cenário de 1.458 dias", "Relógio 1064/365",
+    "Média de 2 anos", "Power Law", "Pi Cycle Top",
+])
+
+with tab_timeline:
+    show_smas = st.toggle("Mostrar as médias de preço no gráfico", value=False)
+    timeline = go.Figure()
+    history = projection["work"].tail(1100)
+    timeline.add_trace(go.Scatter(x=history["data"], y=history["preco"], name="Bitcoin", line={"color":"#e5e7eb","width":1.5}))
+    timeline.add_vrect(x0=projection["halving"]["start"], x1=projection["halving"]["end"], fillcolor="#7c3aed", opacity=.12, line_width=0, annotation_text="conta do halving", annotation_position="top left")
+    timeline.add_vrect(x0=projection["top"]["start"], x1=projection["top"]["end"], fillcolor="#ef4444", opacity=.14, line_width=0, annotation_text="conta do topo", annotation_position="top right")
+    timeline.add_vrect(x0=window_start, x1=window_end, fillcolor="#2563eb", opacity=.28, line_width=0, annotation_text="ONDE AS DUAS SE ENCONTRAM", annotation_position="bottom left")
+    timeline.add_vline(x=projection["last_date"], line_color="#64748b", line_dash="dot", annotation_text="hoje")
+    timeline.add_vline(x=projection["cycle_57w"], line_color="#3b82f6", line_dash="dot", annotation_text="57 semanas")
+    if show_smas:
+        colors = {50:"#ef3340",100:"#22c55e",200:"#eab308"}
+        for period in (50,100,200):
+            sma = projection["smas"][period]
+            timeline.add_trace(go.Scatter(x=sma.index, y=sma.values, name=f"Média de {period} semanas", line={"color":colors[period],"width":2}))
+            future = projection["projected_smas"][period]
+            timeline.add_trace(go.Scatter(x=future.index, y=future.values, showlegend=False, line={"color":colors[period],"width":2,"dash":"dash"}))
+    timeline.update_xaxes(range=[history["data"].iloc[0], projection["cycle_57w"] + pd.Timedelta(days=35)])
+    timeline.update_yaxes(type="log", title="Preço do BTC")
+    timeline.update_layout(title="Preço do BTC ao longo do tempo, com a janela provável do próximo fundo", height=520, margin={"l":20,"r":20,"t":60,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
+    st.plotly_chart(timeline, width="stretch")
+    st.caption(
+        "A faixa azul é onde as duas contas concordam — o período mais provável. "
+        "A linha de 57 semanas é aquele seu padrão de 399 dias; deixei separado porque tem menos histórico para comprovar. "
+        "O preço está numa escala que espreme os números grandes, para dar para ver os ciclos antigos junto com os de hoje."
+    )
+
+with tab_liquidacao:
+    oi_usd, _ = latest_value(df, "open_interest_usd")
+    funding_rate, _ = latest_value(df, "funding_rate")
+    st.caption(
+        "Onde uma massa de posições alavancadas pode ser forçada a fechar se o preço bater ali. "
+        "Não é o mapa de calor real da corretora (esse é dado pago e fechado) — é uma conta feita a partir do preço "
+        "de hoje e das alavancagens mais usadas em corretoras de futuros (5x a 100x). Quanto mais alavancagem, mais perto do preço "
+        "atual fica a zona de risco."
+    )
+
+    LEVERAGE_TIERS = [5, 10, 25, 50, 100]
+    zones = []
+    for lev in LEVERAGE_TIERS:
+        zones.append({"lado": "Comprados (long)", "alavancagem": lev, "preco": btc_price * (1 - 1 / lev)})
+        zones.append({"lado": "Vendidos (short)", "alavancagem": lev, "preco": btc_price * (1 + 1 / lev)})
+
+    liq_fig = go.Figure()
+    liq_fig.add_hline(y=btc_price, line_color="#f8fafc", line_width=2,
+                       annotation_text=f"Preço agora · US$ {btc_price:,.0f}", annotation_position="right")
+    for z in zones:
+        cor = "#ef4444" if z["lado"].startswith("Comprados") else "#22c55e"
+        # alavancagens altas ficam mais "quentes" (mais perto do preço, liquidam com um movimento menor)
+        intensidade = 1 - (LEVERAGE_TIERS.index(z["alavancagem"]) / len(LEVERAGE_TIERS)) * 0.7
+        posicao = "left" if z["lado"].startswith("Comprados") else "right"
+        liq_fig.add_hline(
+            y=z["preco"], line_color=cor, line_width=1 + intensidade * 3, opacity=0.35 + intensidade * 0.5,
+            annotation_text=f"{z['alavancagem']}x", annotation_position=posicao,
+            annotation_font_size=10,
+        )
+    y_min = min([btc_price] + [z["preco"] for z in zones]) * 0.97
+    y_max = max([btc_price] + [z["preco"] for z in zones]) * 1.03
+    liq_fig.update_layout(
+        title="Zonas estimadas de liquidação por alavancagem, em torno do preço atual",
+        height=380, margin={"l": 20, "r": 20, "t": 40, "b": 20},
+        paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color": "#cbd5e1"},
+        xaxis={"visible": False, "range": [0, 1]},
+        yaxis={"title": "Preço estimado da zona (US$)", "range": [y_min, y_max]},
+        showlegend=False,
+    )
+    st.plotly_chart(liq_fig, width="stretch")
+    with st.expander("Ver as zonas de liquidação em tabela (alternativa ao gráfico)"):
+        st.dataframe(
+            pd.DataFrame([{"Alavancagem": f"{z['alavancagem']}x", "Lado": z["lado"], "Preço estimado (US$)": round(z["preco"])} for z in zones]),
+            hide_index=True, width="stretch",
+        )
+
+    lz1, lz2 = st.columns(2)
+    lz1.metric(
+        "Dinheiro alavancado em aberto (Binance)",
+        f"US$ {oi_usd/1e9:.2f} bi" if oi_usd else "N/D",
+        help=(
+            "Open Interest: soma de todas as posições com alavancagem ainda abertas no futuro perpétuo de BTC "
+            "na Binance. Quanto maior, mais dinheiro alavancado pode virar liquidação forçada se o preço se mover forte."
+        ),
+    )
+    if funding_rate is not None:
+        lado_maioria = "Comprados (alta)" if funding_rate > 0 else "Vendidos (baixa)"
+        lz2.metric(
+            "Maioria das contas está", lado_maioria, f"{funding_rate:.4f}% / 8h",
+            help=(
+                "Funding rate: taxa que quem está de um lado paga pra quem está do outro, a cada 8h, no futuro "
+                "perpétuo. Positiva = mais gente comprada pagando pra segurar a posição (mercado inclinado pra alta). "
+                "Negativa = mais gente vendida pagando (mercado inclinado pra baixa). Muita gente do mesmo lado é "
+                "o combustível para uma liquidação em cadeia se o preço for contra a maioria."
+            ),
+        )
+    else:
+        lz2.metric("Maioria das contas está", "N/D")
+    st.caption(
+        "Se o preço cair até perto de uma linha vermelha, gente comprada com aquela alavancagem é liquidada "
+        "à força (venda forçada, empurra o preço mais pra baixo ainda). Se subir até uma linha verde, é o "
+        "inverso com quem está vendido. Fundos de mercado às vezes acontecem quando essa venda forçada "
+        "some — os que iam vender à força já venderam."
+    )
+
 model = cycle_repeat["combined"]
 model_view = model.tail(1458 * 2 + 200)
 with tab_cycle:
