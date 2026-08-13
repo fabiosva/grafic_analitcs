@@ -40,6 +40,8 @@ INDICATORS = {
     "sth_mvrv": ("STH-MVRV", 1.0, [0.7, 0.85, 1.5, 2.0], [100, 90, 30, 0]),
     "aviv": ("AVIV Ratio", 1.0, [0.4, 0.6, 2.0, 2.5], [100, 85, 25, 0]),
     "vdd_multiple": ("VDD Multiple", 0.75, [0.3, 0.75, 2.9, 4.0], [100, 85, 20, 0]),
+    "percent_lth_in_profit": ("LTH % em lucro", 1.0, [50, 60, 90, 100], [100, 85, 20, 0]),
+    "percent_sth_supply": ("STH % da oferta", 0.75, [15, 18, 25, 30], [100, 85, 30, 0]),
 }
 
 
@@ -63,6 +65,11 @@ def build_signals(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.Series]
     work["return_30d_pct"] = price.pct_change(30, fill_method=None) * 100
     work["price_zscore_90d"] = (price - rolling_mean) / rolling_std.replace(0, np.nan)
     work["macd_hist_pct"] = (macd - macd_signal) / price * 100
+    sth_supply_raw = work["short_term_hodler_supply_btc"] if "short_term_hodler_supply_btc" in work else pd.Series(np.nan, index=work.index)
+    total_supply_raw = work["supply_current"] if "supply_current" in work else pd.Series(np.nan, index=work.index)
+    sth_supply = pd.to_numeric(sth_supply_raw, errors="coerce")
+    total_supply = pd.to_numeric(total_supply_raw, errors="coerce")
+    work["percent_sth_supply"] = sth_supply / total_supply * 100
 
     signals = pd.DataFrame(index=work.index, dtype=float)
     weights = {}
@@ -597,3 +604,44 @@ def models_consensus(modelos: dict) -> dict | None:
         "maximo": float(arr.max()),
         "dispersao_pct": float((arr.max() - arr.min()) / mediana * 100) if mediana else 0.0,
     }
+
+
+def pnl_regime(df: pd.DataFrame) -> dict | None:
+    """
+    Aproximacao PROPRIA, inspirada no conceito publicamente descrito do
+    'Bull-Bear Market Cycle Indicator' da CryptoQuant: eles juntam MVRV,
+    NUPL e a comparacao entre SOPR de holders antigos e recentes num
+    'indice de lucro/prejuizo', e comparam esse indice com a media dele
+    mesmo nos ultimos 365 dias. A formula exata deles e proprietaria e
+    NAO foi reproduzida fielmente aqui - isso e uma reconstrucao nossa
+    com a mesma ideia geral, sem validacao contra o numero real deles.
+    Por isso fica de fora da nota composta do painel, so como contexto.
+    """
+    work = df.copy()
+
+    def coluna(nome):
+        return work[nome] if nome in work else pd.Series(np.nan, index=work.index)
+
+    def zscore(serie):
+        serie = pd.to_numeric(serie, errors="coerce")
+        return (serie - serie.mean()) / serie.std()
+
+    z_mvrv = zscore(coluna("mvrv_zscore"))
+    z_nupl = zscore(coluna("nupl"))
+    sopr_delta = pd.to_numeric(coluna("lth_sopr"), errors="coerce") - pd.to_numeric(coluna("sth_sopr"), errors="coerce")
+    z_sopr = zscore(sopr_delta)
+
+    indice = pd.concat([z_mvrv, z_nupl, z_sopr], axis=1).mean(axis=1, skipna=True)
+    media_365 = indice.rolling(365, min_periods=120).mean()
+    sinal = indice - media_365
+
+    validos = sinal.dropna()
+    if validos.empty:
+        return None
+    atual = float(validos.iloc[-1])
+    estado = "bull" if atual > 0 else "bear"
+    trocas = (validos > 0) != (validos > 0).shift(1)
+    trocas = trocas.fillna(False)
+    posicoes_troca = list(validos.index[trocas])
+    dias_no_regime = len(validos) - (list(validos.index).index(posicoes_troca[-1]) if posicoes_troca else 0)
+    return {"estado": estado, "valor": atual, "dias_no_regime": int(dias_no_regime), "amostras": len(validos)}

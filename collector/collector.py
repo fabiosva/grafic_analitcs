@@ -39,7 +39,6 @@ FUNDOS_POS_HALVING = ["2015-01-14", "2018-12-15", "2022-11-21"]
 # Quando um deles nao e buscado (ou a API recusa), o painel simplesmente
 # mantem o ultimo valor conhecido, que para modelos assim e suficiente.
 EXTRAS = [
-    ("cvdd", {"cvdd": "cvdd"}),
     ("balanced-price", {"balanced_price": "balancedPrice"}),
     ("terminal-price", {"terminal_price": "terminalPrice"}),
     ("lth-realized-price", {"lth_realized_price": "lthRealizedPrice"}),
@@ -53,6 +52,11 @@ EXTRAS = [
     ("aviv", {"aviv": "aviv"}),
     ("sth-lth-ratio", {"sth_lth_ratio": "sthLthRatio"}),
     ("sth-realized-price", {"sth_realized_price": "sthRealizedPrice"}),
+    ("percent-lth-in-profit", {"percent_lth_in_profit": "percentLthInProfit"}),
+    ("lth-sopr", {"lth_sopr": "lthSopr"}),
+    ("sth-sopr", {"sth_sopr": "sthSopr"}),
+    ("short-term-hodler-supply-btc", {"short_term_hodler_supply_btc": "shortTermHodlerSupplyBtc"}),
+    ("supply-current", {"supply_current": "supplyCurrent"}),
 ]
 EXTRAS_POR_DIA = 2
 

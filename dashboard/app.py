@@ -10,8 +10,8 @@ import streamlit as st
 
 from analytics import (
     INDICATORS, NEXT_HALVING_ESTIMATE, NEXT_TOP_WINDOW, build_cycle_projection, build_cycle_repeat,
-    build_signals, classify, data_health, historical_analogs, latest_value, models_consensus, purchase_readiness,
-    score_calibration, simulate_dca, simulate_exits, stress_fundo_mais_baixo,
+    build_signals, classify, data_health, historical_analogs, latest_value, models_consensus, pnl_regime,
+    purchase_readiness, score_calibration, simulate_dca, simulate_exits, stress_fundo_mais_baixo,
 )
 
 
@@ -138,6 +138,8 @@ PLAIN = {
     "STH-MVRV": "Quem comprou recente está no lucro? (STH-MVRV)",
     "AVIV Ratio": "Preço vs custo de quem está ativo (AVIV)",
     "VDD Multiple": "Moedas antigas sendo movimentadas (VDD)",
+    "LTH % em lucro": "Quanto de quem segura há anos está no lucro",
+    "STH % da oferta": "Quanto do BTC em circulação é de quem comprou recente",
 }
 
 
@@ -727,9 +729,10 @@ if consenso:
     st.caption("Cada modelo usa uma conta diferente pra estimar 'preço justo' ou 'fundo histórico'. Quando eles concordam (faixa estreita), a referência é mais forte. Quando discordam muito, é sinal de incerteza — nenhum modelo sozinho é garantia.")
 
 sth_realized_price, _ = latest_value(df, "sth_realized_price")
+regime = pnl_regime(df)
 
 clock = projection["clock_1064_365"]
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4)
 with c1:
     st.markdown(
         f'<div class="lens"><div class="lens-title">Relógio 1064/365 · somente data</div>'
@@ -776,6 +779,25 @@ with c3:
             '<div class="lens"><div class="lens-title">Custo de quem comprou recente vs quem segura há anos</div>'
             '<div class="lens-score">N/D</div>'
             '<div class="lens-text">Ainda sem dado suficiente (esse indicador roda em rodízio, chega a cada poucos dias).</div></div>',
+            unsafe_allow_html=True,
+        )
+with c4:
+    if regime is not None:
+        reg_color = "#22c55e" if regime["estado"] == "bull" else "#ef4444"
+        reg_text = "● REGIME DE ALTA (aproximado)" if regime["estado"] == "bull" else "● REGIME DE BAIXA (aproximado)"
+        st.markdown(
+            f'<div class="lens"><div class="lens-title">Regime CryptoQuant (aproximado)</div>'
+            f'<div class="lens-score">{regime["dias_no_regime"]} dias nesse regime</div>'
+            f'<div style="color:{reg_color};font-weight:800;margin-bottom:7px">{reg_text}</div>'
+            f'<div class="lens-text">NÃO é o dado real da CryptoQuant (fórmula deles é proprietária) — é uma '
+            f'reconstrução nossa com a mesma ideia (MVRV+NUPL+SOPR vs média de 1 ano). Baseado em {regime["amostras"]} dias de histórico.</div></div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="lens"><div class="lens-title">Regime CryptoQuant (aproximado)</div>'
+            '<div class="lens-score">N/D</div>'
+            '<div class="lens-text">Ainda não há histórico suficiente (precisa de LTH-SOPR e STH-SOPR, que rodam em rodízio) pra calcular essa aproximação.</div></div>',
             unsafe_allow_html=True,
         )
 
@@ -1096,6 +1118,9 @@ with st.expander("Glossário — o que cada sigla quer dizer"):
         "Open Interest": "Soma de todas as posições com alavancagem ainda abertas no mercado futuro.",
         "Funding Rate": "Taxa que um lado (comprado ou vendido) paga pro outro, a cada 8h, nos contratos futuros perpétuos — mostra pra que lado o mercado está mais inclinado.",
         "Hash Ribbons": "Mostra se os mineradores estão desligando máquinas (capitulação) ou ligando de novo (recuperação).",
+        "LTH % em lucro": "Percentual de todo o BTC segurado por detentores de longo prazo (LTH) que está com preço acima do que foi pago. Nos fundos de 2015, 2018, 2020 e 2022, esse número caiu para a faixa de 50%-75% antes de virar — quando cai muito, é sinal de que até quem segura há anos está sentindo dor, o que historicamente precede reversões.",
+        "STH % da oferta": "Fatia de todo o Bitcoin em circulação que está em mãos de quem comprou há menos de ~155 dias. Quando essa fatia encolhe, quer dizer que sobrou pouca gente 'nova' segurando — historicamente aparece perto do fim de mercados de baixa (ou porque venderam e saíram, ou porque as moedas deles 'envelheceram' para virar LTH).",
+        "Regime CryptoQuant (aproximado)": "Reconstrução nossa, inspirada no conceito público do indicador Bull-Bear da CryptoQuant (combina MVRV, NUPL e a diferença de lucro entre holders antigos e recentes, comparado com a média de 1 ano). NÃO é o número real deles — a fórmula exata é proprietária. Trate como uma segunda opinião aproximada, não como o dado oficial.",
     }
     for termo, explicacao in glossario.items():
         st.markdown(f"**{termo}** — {explicacao}")
