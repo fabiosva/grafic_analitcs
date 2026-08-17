@@ -361,6 +361,8 @@ def build_cycle_repeat(df: pd.DataFrame, cycle_days: int = 1458) -> dict:
     combined["ma1458"] = combined["preco"].rolling(cycle_days).mean()
     combined["pi111"] = combined["preco"].rolling(111).mean()
     combined["pi350x2"] = combined["preco"].rolling(350).mean() * 2
+    combined["ema150"] = combined["preco"].ewm(span=150, adjust=False).mean()
+    combined["sma471x0745"] = combined["preco"].rolling(471).mean() * 0.745
 
     genesis = pd.Timestamp("2009-01-03")
     actual_days = (actual["data"] - genesis).dt.days.clip(lower=1)
@@ -406,6 +408,8 @@ def build_cycle_repeat(df: pd.DataFrame, cycle_days: int = 1458) -> dict:
         "last_date": last_date,
         "current_pi111": float(current["pi111"]),
         "current_pi350x2": float(current["pi350x2"]),
+        "current_ema150": float(current["ema150"]),
+        "current_sma471x0745": float(current["sma471x0745"]),
         "current_ma730": float(current["ma730"]),
         "current_ma730x5": float(current["ma730x5"]),
         "investor_ratio": float(investor_ratio),
