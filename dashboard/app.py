@@ -316,9 +316,9 @@ st.caption(
 
 alertas = []
 previous_structural = structural_series.dropna().iloc[-2] if structural_series.notna().sum() > 1 else structural_score
-pi_ema150 = cycle_repeat["current_ema150"]
-pi_sma = cycle_repeat["current_sma471x0745"]
-if pi_ema150 < pi_sma:
+pi_ema150 = cycle_repeat.get("current_ema150")
+pi_sma = cycle_repeat.get("current_sma471x0745")
+if pi_ema150 is not None and pi_sma is not None and pi_ema150 < pi_sma:
     alertas.append(("🟢", f"Sinal do Pi Cycle Bottom ativo: EMA de 150 dias (US$ {pi_ema150:,.0f}) cruzou abaixo da SMA de 471 dias ajustada (US$ {pi_sma:,.0f})."))
 
 if previous_structural < 70 <= structural_score:
@@ -673,8 +673,11 @@ bottom_levels = [
     ("Piso do Power Law", cycle_repeat["current_power_lower"], "Limite inferior do corredor estatístico atual"),
     ("Preço realizado", float(realized_price), "Preço médio estimado pago pelas moedas da rede"),
     ("Média de 200 semanas", weekly_200, "Suporte de longo prazo acompanhado entre ciclos"),
-    ("Pi Cycle Bottom", cycle_repeat["current_sma471x0745"], "Média de 471 dias × 0.745. Fundo histórico quando a EMA 150 cruza abaixo"),
 ]
+if cycle_repeat.get("current_sma471x0745") is not None:
+    bottom_levels.append(
+        ("Pi Cycle Bottom", float(cycle_repeat["current_sma471x0745"]), "Média de 471 dias × 0.745. Fundo histórico quando a EMA 150 cruza abaixo")
+    )
 if lth_realized_price is not None:
     bottom_levels.append(
         ("Preço pago por quem segura há anos", float(lth_realized_price),
