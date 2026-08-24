@@ -20,7 +20,30 @@ st.set_page_config(page_title="Painel Fundo BTC & Crypto Boom Scanner", page_ico
 st.markdown("""
 <style>
   .stApp { background:#080c14; color:#e5e7eb; }
-  .block-container { max-width:1320px; padding-top:1.5rem; }
+  .block-container { max-width:1320px; padding-top:4rem !important; padding-bottom:2rem; }
+  [data-testid="stHeader"] { background:rgba(8,12,20,0.85); backdrop-filter:blur(8px); }
+  [data-baseweb="tab-list"] {
+    gap:8px;
+    background:#0f172a;
+    padding:6px;
+    border-radius:14px;
+    border:1px solid #1f2d47;
+    margin-bottom:1.5rem;
+  }
+  [data-baseweb="tab"] {
+    height:44px;
+    border-radius:10px;
+    padding:0 20px;
+    color:#94a3b8;
+    font-weight:700;
+    font-size:0.95rem;
+    border:none !important;
+  }
+  [data-baseweb="tab"][aria-selected="true"] {
+    background:#1e293b !important;
+    color:#38bdf8 !important;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+  }
   .hero { padding:25px 28px; border:1px solid #273449; border-radius:18px; background:linear-gradient(135deg,#111827,#0b1220); }
   .eyebrow { color:#f59e0b; font-size:.75rem; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
   .hero-grid { display:grid; grid-template-columns:1fr auto; align-items:end; gap:20px; }

@@ -1,0 +1,42 @@
+name: Coletor Crypto Boom Scanner
+
+on:
+  schedule:
+    # Executa a cada 2 horas (00:00, 02:00, 04:00, 06:00, 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00 UTC)
+    - cron: "0 */2 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  escanear:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias
+        run: |
+          cd crypto_boom_scanner
+          npm ci || npm install
+
+      - name: Rodar scanner de mercado
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOTAL_COINS_TO_TRACK: 350
+        run: |
+          cd crypto_boom_scanner
+          node scheduler.js --now
+
+      - name: Commit cache local de scores (fallback Streamlit)
+        run: |
+          git config user.name "bot-crypto-scanner"
+          git config user.email "bot@crypto-scanner"
+          git add crypto_boom_scanner/data/*.json || true
+          git diff --staged --quiet || git commit -m "Atualiza scores de mercado [$(date -u +'%Y-%m-%d %H:%M UTC')]"
+          git push || true

@@ -4,5 +4,4 @@ __pycache__/
 node_modules/
 *.log
 .env
-crypto_boom_scanner/data/*.json
 crypto_boom_scanner/logs/
