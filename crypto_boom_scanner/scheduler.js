@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const config = require('./config');
 const collector = require('./collector');
 const scorer = require('./scorer');
+const recommender = require('./recommender');
 const alerts = require('./alerts');
 const backtest = require('./backtest');
 const db = require('./db');
@@ -10,7 +11,7 @@ let isRunning = false;
 let previousTop10 = [];
 
 /**
- * Executa um ciclo completo do scanner
+ * Executa um ciclo completo do scanner (v3)
  */
 async function executeScanCycle() {
   if (isRunning) {
@@ -21,11 +22,11 @@ async function executeScanCycle() {
   const startTime = Date.now();
   isRunning = true;
   console.log(`\n======================================================`);
-  console.log(`[Scheduler] 🚀 Iniciando ciclo de scan às ${new Date().toISOString()}`);
+  console.log(`[Scheduler] 🚀 Iniciando ciclo de scan (v3) às ${new Date().toISOString()}`);
   console.log(`======================================================`);
 
   try {
-    // 1. Coleta de Mercado (CoinGecko)
+    // 1. Coleta de Mercado (CoinGecko com Sparklines 7d e ATH)
     const collectResult = await collector.collectTopCoins();
     const coins = collectResult.coins || [];
 
@@ -37,10 +38,7 @@ async function executeScanCycle() {
 
     console.log(`[Scheduler] Processando indicadores e scores para ${coins.length} moedas...`);
 
-    // Carregar todos os snapshots recentes para agilizar os cálculos
-    const allRecentSnapshots = await db.getAllRecentSnapshots(720); // 30 dias
-
-    // Mapear por moeda
+    const allRecentSnapshots = await db.getAllRecentSnapshots(720);
     const snapshotsByCoin = new Map();
     for (const snap of allRecentSnapshots) {
       if (!snapshotsByCoin.has(snap.coin_id)) {
@@ -51,7 +49,7 @@ async function executeScanCycle() {
 
     const calculatedScores = [];
 
-    // 2. Calcular Score e Indicadores para cada moeda
+    // 2. Calcular Score e Indicadores
     for (const item of coins) {
       const coinId = item.meta.id;
       const historySnapshots = snapshotsByCoin.get(coinId) || [];
@@ -61,18 +59,18 @@ async function executeScanCycle() {
         item.snapshot,
         historySnapshots,
         previousScores,
-        { ageDays: item.meta.ageDays }
+        { ageDays: item.meta.age_days }
       );
 
       calculatedScores.push({
         ...scoreObj,
         symbol: item.meta.symbol,
         name: item.meta.name,
-        image_url: item.meta.image,
+        image_url: item.meta.image_url,
       });
     }
 
-    // Ordenar por Final Score decrescente
+    // Ordenar por Final Score
     calculatedScores.sort((a, b) => b.final_score - a.final_score);
 
     // 3. Persistir Scores no Banco
@@ -91,12 +89,20 @@ async function executeScanCycle() {
     }));
     await db.insertScores(dbScoresToInsert);
 
-    // 4. Processar Alertas
+    // 4. Motor de Recomendação Automática (Adendo v3)
+    console.log(`[Scheduler] Gerando vereditos do Motor de Recomendação...`);
+    const recommendations = recommender.generateRecommendations(calculatedScores, 30);
+    await db.insertRecommendations(recommendations);
+
+    const marketSummary = recommender.buildMarketSummary(calculatedScores, recommendations);
+    await db.saveMarketSummary(marketSummary);
+
+    // 5. Processar Alertas
     console.log(`[Scheduler] Avaliando regras de alerta e notificações...`);
     const alertResults = await alerts.processAlerts(calculatedScores, previousTop10);
     previousTop10 = alertResults.currentTop10 || [];
 
-    // 5. Exibir Resumo no Terminal
+    // 6. Exibir Resumo no Terminal
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`\n--- Top 10 Oportunidades do Ciclo (${duration}s) ---`);
     console.table(calculatedScores.slice(0, 10).map((s, idx) => ({
@@ -107,9 +113,12 @@ async function executeScanCycle() {
       'Risk': s.risk_score,
       'Sinal': s.signal_category,
       '24h %': `${s.components?.priceChange24h?.toFixed(1)}%`,
-      'Vol Accel': `${s.components?.volumeAccelVs7d}x`,
-      'RSI': s.components?.rsi != null ? s.components.rsi : 'Coletando...',
+      'Vol Accel': s.components?.volumeAccelVs7d != null ? `${s.components.volumeAccelVs7d}x` : 'N/A',
+      'RSI': s.components?.rsi != null ? s.components.rsi : 'N/A',
     })));
+
+    console.log(`\n🎯 Veredito do Mercado: ${marketSummary.regime}`);
+    console.log(`💡 ${marketSummary.summaryText}`);
 
   } catch (err) {
     console.error('[Scheduler ERROR]', err.stack || err.message);
@@ -119,7 +128,7 @@ async function executeScanCycle() {
 }
 
 /**
- * Inicialização do Agendador (Snapshots + Backtest Diário)
+ * Inicialização do Agendador
  */
 function startScheduler() {
   const intervalMin = config.collector.snapshotIntervalMinutes;
@@ -128,22 +137,18 @@ function startScheduler() {
   console.log(`[Scheduler] ⏰ Agendador de Snapshots ativo: a cada ${intervalMin} min (${cronExpr})`);
   console.log(`[Scheduler] 📊 Agendador de Backtest ativo: diariamente à meia-noite (0 0 * * *)`);
 
-  // Cron dos snapshots horários
   cron.schedule(cronExpr, () => {
     executeScanCycle();
   });
 
-  // Cron diário para atualizar o Backtest histórico
   cron.schedule('0 0 * * *', () => {
     console.log('[Scheduler] Executando rotina diária de Backtest...');
     backtest.runBacktest().catch(e => console.error(e));
   });
 
-  // Executar primeiro ciclo na inicialização
   executeScanCycle();
 }
 
-// Execução via linha de comando
 if (require.main === module) {
   const args = process.argv.slice(2);
   if (args.includes('--now')) {

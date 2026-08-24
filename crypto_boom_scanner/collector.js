@@ -28,7 +28,7 @@ function isStablecoin(coin) {
 }
 
 /**
- * Coleta os mercados da CoinGecko com sparkline=true (168 pontos horários por moeda)
+ * Coleta os mercados da CoinGecko com sparkline=true
  */
 async function fetchMarketsPage(page = 1, perPage = 250) {
   const url = `${config.collector.apiUrl}/coins/markets`;
@@ -37,13 +37,13 @@ async function fetchMarketsPage(page = 1, perPage = 250) {
     order: 'market_cap_desc',
     per_page: perPage,
     page: page,
-    sparkline: true, // Retorna 168 pontos de preço histórico dos últimos 7 dias
+    sparkline: true,
     price_change_percentage: '1h,24h,7d,30d',
   };
 
   const headers = {
     'Accept': 'application/json',
-    'User-Agent': 'CryptoBoomScanner/2.0',
+    'User-Agent': 'CryptoBoomScanner/3.0',
   };
 
   if (config.collector.apiKey) {
@@ -60,7 +60,7 @@ async function fetchMarketsPage(page = 1, perPage = 250) {
       retries--;
       const status = err.response ? err.response.status : null;
       if (status === 429) {
-        console.warn(`[CoinGecko Rate Limit 429] Aguardando 10s antes de tentar novamente (Tentativas restantes: ${retries})...`);
+        console.warn(`[CoinGecko Rate Limit 429] Aguardando 10s antes de tentar novamente...`);
         await sleep(10000);
       } else {
         console.error(`[Erro CoinGecko Página ${page}] ${err.message}`);
@@ -72,14 +72,18 @@ async function fetchMarketsPage(page = 1, perPage = 250) {
 }
 
 /**
- * Executa o ciclo completo de coleta do Top 300-500 com sparklines históricas
+ * Executa o ciclo completo de coleta do Top 300-500 com sparklines, ATH e cálculo de idade
  */
 async function collectTopCoins() {
-  console.log(`[Collector] Iniciando coleta de mercado CoinGecko (com sparkline 7d) às ${new Date().toISOString()}...`);
+  console.log(`[Collector] Iniciando coleta de mercado CoinGecko (v3) às ${new Date().toISOString()}...`);
   const snapshotTime = new Date().toISOString();
   const totalTarget = config.collector.totalCoins;
   const perPage = config.collector.perPage;
   const pagesCount = Math.ceil(totalTarget / perPage);
+
+  // Carregar moedas conhecidas para determinar first_seen_at
+  const knownCoins = await db.getAllKnownCoins();
+  const nowMs = Date.now();
 
   let rawCoins = [];
 
@@ -117,7 +121,6 @@ async function collectTopCoins() {
     const totalSupply = parseFloat(item.total_supply) || null;
     const maxSupply = parseFloat(item.max_supply) || null;
 
-    // Cálculo exato de FDV
     let fdv = parseFloat(item.fully_diluted_valuation) || null;
     if (!fdv && priceUsd > 0) {
       const targetSupply = maxSupply || totalSupply;
@@ -133,7 +136,37 @@ async function collectTopCoins() {
     const p7d = parseFloat(item.price_change_percentage_7d_in_currency) || 0;
     const p30d = parseFloat(item.price_change_percentage_30d_in_currency) || 0;
 
-    // Extrair série horária dos últimos 7 dias (168 pontos)
+    const ath = parseFloat(item.ath) || null;
+    const athChangePct = parseFloat(item.ath_change_percentage) || null;
+    const athDate = item.ath_date || null;
+
+    // Cálculo de idade do token (Adendo v3)
+    let ageDays = null;
+    let ageSource = 'estimated';
+    let firstSeenAt = snapshotTime;
+    let genesisDate = item.genesis_date || null;
+
+    if (genesisDate) {
+      ageDays = Math.max(1, Math.floor((nowMs - new Date(genesisDate).getTime()) / (1000 * 60 * 60 * 24)));
+      ageSource = 'confirmed';
+    } else {
+      const existing = knownCoins[item.id];
+      if (existing && existing.first_seen_at) {
+        firstSeenAt = existing.first_seen_at;
+        ageDays = Math.max(1, Math.floor((nowMs - new Date(firstSeenAt).getTime()) / (1000 * 60 * 60 * 24)));
+      } else if (item.atl_date) {
+        // Se temos a data de ATL ou ATH antiga, usamos como piso de idade
+        const refDate = item.atl_date || item.ath_date;
+        if (refDate) {
+          ageDays = Math.max(1, Math.floor((nowMs - new Date(refDate).getTime()) / (1000 * 60 * 60 * 24)));
+        } else {
+          ageDays = 45; // default fase de descoberta se novo no monitor
+        }
+      } else {
+        ageDays = 45;
+      }
+    }
+
     const sparklinePrices = Array.isArray(item.sparkline_in_7d?.price) 
       ? item.sparkline_in_7d.price.filter(p => p != null && !isNaN(p) && p > 0)
       : [];
@@ -142,7 +175,11 @@ async function collectTopCoins() {
       id: item.id,
       symbol: item.symbol.toLowerCase(),
       name: item.name,
-      image: item.image,
+      image_url: item.image,
+      genesis_date: genesisDate,
+      first_seen_at: firstSeenAt,
+      age_days: ageDays,
+      age_source: ageSource,
     };
 
     const snapshotData = {
@@ -161,8 +198,9 @@ async function collectTopCoins() {
       price_change_30d: p30d,
       high_24h: parseFloat(item.high_24h) || null,
       low_24h: parseFloat(item.low_24h) || null,
-      ath: parseFloat(item.ath) || null,
-      ath_change_percentage: parseFloat(item.ath_change_percentage) || null,
+      ath: ath,
+      ath_change_percentage: athChangePct,
+      ath_date: athDate,
       snapshot_time: snapshotTime,
       sparkline_prices: sparklinePrices,
     };
@@ -172,7 +210,7 @@ async function collectTopCoins() {
     snapshots.push(snapshotData);
   }
 
-  console.log(`[Collector] Moedas válidas com sparkline histórica: ${filteredCoins.length}`);
+  console.log(`[Collector] Moedas processadas e validadas: ${filteredCoins.length}`);
 
   await db.upsertCoins(coinsMeta);
   await db.insertSnapshots(snapshots.map(({ sparkline_prices, ...s }) => s));

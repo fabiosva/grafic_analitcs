@@ -12,12 +12,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Caminhos para dados do Painel BTC original
 const BTC_DATA_DIR = path.join(__dirname, '..', 'collector', 'data');
 const BTC_LATEST_FILE = path.join(BTC_DATA_DIR, 'latest.json');
 const BTC_HISTORY_FILE = path.join(BTC_DATA_DIR, 'history.json');
 
-// 1. API: Listagem de Rankings e Scores do Crypto Boom Scanner
+// 1. API: Listagem de Rankings e Scores
 app.get('/api/scanner/rankings', async (req, res) => {
   try {
     const scores = await db.getLatestScores();
@@ -32,7 +31,23 @@ app.get('/api/scanner/rankings', async (req, res) => {
   }
 });
 
-// 2. API: Detalhes e Histórico de uma Moeda
+// 2. API: Recomendações Automáticas (Adendo v3)
+app.get('/api/scanner/recommendations', async (req, res) => {
+  try {
+    const recommendations = await db.getLatestRecommendations(20);
+    const summary = await db.getMarketSummary();
+    res.json({
+      success: true,
+      summary,
+      count: recommendations.length,
+      data: recommendations,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. API: Detalhes e Histórico de uma Moeda
 app.get('/api/scanner/coin/:id', async (req, res) => {
   try {
     const coinId = req.params.id;
@@ -49,7 +64,7 @@ app.get('/api/scanner/coin/:id', async (req, res) => {
   }
 });
 
-// 3. API: Resultados de Backtest
+// 4. API: Resultados de Backtest
 app.get('/api/scanner/backtest', async (req, res) => {
   try {
     let results = await db.getBacktestResults();
@@ -62,7 +77,6 @@ app.get('/api/scanner/backtest', async (req, res) => {
   }
 });
 
-// 3.1. API: Forçar Recálculo do Backtest
 app.post('/api/scanner/backtest/recalculate', async (req, res) => {
   try {
     const results = await backtest.runBacktest();
@@ -72,7 +86,7 @@ app.post('/api/scanner/backtest/recalculate', async (req, res) => {
   }
 });
 
-// 4. API: Alertas Recentes
+// 5. API: Alertas Recentes
 app.get('/api/scanner/alerts', async (req, res) => {
   try {
     const alerts = await db.getRecentAlerts(50);
@@ -82,7 +96,7 @@ app.get('/api/scanner/alerts', async (req, res) => {
   }
 });
 
-// 5. API: Disparo Manual de Coleta
+// 6. API: Disparo Manual de Coleta
 app.post('/api/scanner/trigger', async (req, res) => {
   try {
     scheduler.executeScanCycle().catch(e => console.error(e));
@@ -92,7 +106,7 @@ app.post('/api/scanner/trigger', async (req, res) => {
   }
 });
 
-// 6. API: Status do Sistema
+// 7. API: Status do Sistema
 app.get('/api/scanner/status', async (req, res) => {
   try {
     const scores = await db.getLatestScores();
@@ -117,10 +131,9 @@ app.get('/api/scanner/status', async (req, res) => {
   }
 });
 
-// 7. API: Integração com o Painel Fundo BTC (Original)
+// 8. API: Integração BTC
 app.get('/api/btc/latest', async (req, res) => {
   try {
-    // 1. Tentar Supabase
     if (db.supabase) {
       const { data, error } = await db.supabase
         .from('bottom_indicators')
@@ -132,7 +145,6 @@ app.get('/api/btc/latest', async (req, res) => {
       }
     }
 
-    // 2. Fallback local
     if (fs.existsSync(BTC_LATEST_FILE)) {
       const row = JSON.parse(fs.readFileSync(BTC_LATEST_FILE, 'utf-8'));
       return res.json({ success: true, source: 'local', data: row });
@@ -167,7 +179,6 @@ app.get('/api/btc/history', async (req, res) => {
   }
 });
 
-// Rota padrão UI
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -175,7 +186,7 @@ app.get('*', (req, res) => {
 const PORT = config.server.port;
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`[Dashboard] 🚀 Painel Unificado Node.js rodando em http://localhost:${PORT}`);
+    console.log(`[Dashboard] 🚀 Painel Unificado Node.js (v3) rodando em http://localhost:${PORT}`);
   });
 }
 

@@ -91,13 +91,17 @@ DO $$ BEGIN
 END $$;
 
 -- ==============================================================================
--- 2. CRYPTO BOOM SCANNER (v2)
+-- 2. CRYPTO BOOM SCANNER (v3)
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS coins (
     id TEXT PRIMARY KEY,
     symbol TEXT NOT NULL,
     name TEXT NOT NULL,
     image_url TEXT,
+    genesis_date DATE,
+    first_seen_at TIMESTAMPTZ DEFAULT now(),
+    age_days INT,
+    age_source TEXT DEFAULT 'estimated',
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -121,6 +125,7 @@ CREATE TABLE IF NOT EXISTS coin_snapshots (
     low_24h NUMERIC,
     ath NUMERIC,
     ath_change_percentage NUMERIC,
+    ath_date TIMESTAMPTZ,
     snapshot_time TIMESTAMPTZ DEFAULT now(),
     UNIQUE(coin_id, snapshot_time)
 );
@@ -136,6 +141,20 @@ CREATE TABLE IF NOT EXISTS coin_scores (
     delta_12h NUMERIC,
     delta_24h NUMERIC,
     components JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS recommendations (
+    id BIGSERIAL PRIMARY KEY,
+    coin_id TEXT REFERENCES coins(id) ON DELETE CASCADE,
+    verdict TEXT NOT NULL, -- 'STRONG_WATCH', 'WATCH', 'TOO_EXTENDED', 'AVOID'
+    confidence NUMERIC NOT NULL,
+    reasoning JSONB NOT NULL,
+    risk_flags JSONB NOT NULL,
+    price_at_recommendation NUMERIC NOT NULL,
+    opportunity_score NUMERIC,
+    risk_score NUMERIC,
+    final_score NUMERIC,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -182,6 +201,8 @@ CREATE INDEX IF NOT EXISTS idx_snapshots_time ON coin_snapshots(snapshot_time DE
 CREATE INDEX IF NOT EXISTS idx_coin_scores_coin_created ON coin_scores(coin_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_coin_scores_created ON coin_scores(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_coin_scores_final ON coin_scores(final_score DESC);
+CREATE INDEX IF NOT EXISTS idx_recommendations_created ON recommendations(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_recommendations_coin ON recommendations(coin_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_score_events_created ON score_events(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_alerts_coin_sent ON alerts(coin_id, sent_at DESC);
 
@@ -189,6 +210,7 @@ CREATE INDEX IF NOT EXISTS idx_alerts_coin_sent ON alerts(coin_id, sent_at DESC)
 ALTER TABLE coins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coin_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coin_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recommendations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE score_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE backtest_results ENABLE ROW LEVEL SECURITY;
@@ -213,6 +235,13 @@ DO $$ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service write scores') THEN
         CREATE POLICY "Service write scores" ON coin_scores FOR ALL USING (true) WITH CHECK (true);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public select recommendations') THEN
+        CREATE POLICY "Public select recommendations" ON recommendations FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Service write recommendations') THEN
+        CREATE POLICY "Service write recommendations" ON recommendations FOR ALL USING (true) WITH CHECK (true);
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public select events') THEN

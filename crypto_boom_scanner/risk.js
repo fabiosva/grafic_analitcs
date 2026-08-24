@@ -2,7 +2,7 @@ const config = require('./config');
 
 /**
  * Avalia o risco estrutural de um ativo cripto (0 a 100)
- * Baseado em Razão FDV/MCap, Float Circulante, Liquidez e Idade
+ * Adendo v3: Inclui Idade Estrutural e Dead Weight Risk (Pressão de Holders Antigos Presos)
  */
 function computeRisk(snapshot, extraData = {}) {
   const rules = config.riskRules;
@@ -13,9 +13,9 @@ function computeRisk(snapshot, extraData = {}) {
   const volume24h = snapshot.volume_24h || 0;
   const circulating = snapshot.circulating_supply || 0;
   const total = snapshot.total_supply || snapshot.max_supply || circulating;
-  const price = snapshot.price_usd || 0;
+  const athChangePct = snapshot.ath_change_percentage != null ? snapshot.ath_change_percentage : -50;
 
-  // 1. Razão FDV / Market Cap (Diluição de Tokens Bloqueados)
+  // 1. Razão FDV / Market Cap & Float Circulante
   let fdvRatio = 1.0;
   let fdvPenalty = 0;
 
@@ -35,7 +35,6 @@ function computeRisk(snapshot, extraData = {}) {
     fdvPenalty = rules.fdvRatioThresholds.critical; // > 10x
   }
 
-  // Float Circulante Crítico (Menos de 25% das moedas no mercado = risco de despejo)
   let floatPct = 100;
   if (total > 0 && circulating > 0) {
     floatPct = (circulating / total) * 100;
@@ -49,7 +48,7 @@ function computeRisk(snapshot, extraData = {}) {
   components.floatPct = parseFloat(floatPct.toFixed(1));
   components.fdvPenalty = fdvPenalty;
 
-  // 2. Liquidez / Giro de Volume (Volume 24h / Market Cap)
+  // 2. Liquidez / Giro de Volume
   let liquidityRatio = 0;
   let liquidityPenalty = 0;
 
@@ -58,16 +57,15 @@ function computeRisk(snapshot, extraData = {}) {
   }
 
   if (liquidityRatio < rules.lowLiquidityRatio) {
-    liquidityPenalty = rules.lowLiquidityPenalty; // Giro < 2%
+    liquidityPenalty = rules.lowLiquidityPenalty; // < 2%
   } else if (liquidityRatio < 0.04) {
-    liquidityPenalty = 15; // Giro < 4%
+    liquidityPenalty = 15;
   } else if (liquidityRatio < 0.08) {
     liquidityPenalty = 5;
   } else {
     liquidityPenalty = 0;
   }
 
-  // Volume absoluto muito baixo (< $150k)
   if (volume24h < 150000 && liquidityPenalty < 20) {
     liquidityPenalty = Math.max(liquidityPenalty, 20);
   }
@@ -76,21 +74,52 @@ function computeRisk(snapshot, extraData = {}) {
   components.liquidityRatio = parseFloat(liquidityRatio.toFixed(4));
   components.liquidityPenalty = liquidityPenalty;
 
-  // 3. Idade do Token
-  let ageDays = extraData.ageDays != null ? extraData.ageDays : 180;
+  // 3. Idade Estrutural do Token (Adendo v3)
+  const ageDays = extraData.ageDays != null ? extraData.ageDays : 60;
   let agePenalty = 0;
+  let ageCategory = 'DISCOVERY'; // 'NEW', 'DISCOVERY', 'MATURING', 'VETERAN'
 
-  if (ageDays < rules.tokenAgeYoungDays) {
-    agePenalty = rules.tokenAgeYoungPenalty;
-  } else if (ageDays < rules.tokenAgeMediumDays) {
-    agePenalty = rules.tokenAgeMediumPenalty;
+  if (ageDays < 30) {
+    ageCategory = 'NEW';
+    agePenalty = 25; // Risco de rug/falta de histórico
+  } else if (ageDays <= 180) {
+    ageCategory = 'DISCOVERY';
+    agePenalty = 0; // Fase de descoberta (maior valorização orgânica)
+  } else if (ageDays <= 730) {
+    ageCategory = 'MATURING';
+    agePenalty = 10; // Holders começando a acumular lucro
   } else {
-    agePenalty = 0;
+    ageCategory = 'VETERAN';
+    agePenalty = 15; // Moeda antiga
   }
 
   riskScore += agePenalty;
   components.ageDays = ageDays;
+  components.ageCategory = ageCategory;
   components.agePenalty = agePenalty;
+
+  // 4. Dead Weight Risk (Peso Morto de Holders Antigos Presos)
+  let deadWeightRisk = 0;
+  let isDeadWeight = false;
+
+  if (ageDays > 730) { // > 2 anos
+    // Se preço estiver muito abaixo da máxima histórica (> 80% de queda) e sem volume expressivo
+    if (athChangePct <= -80.0 && liquidityRatio < 0.10) {
+      deadWeightRisk = 25; // Holders presos esperando saída no zero a zero
+      isDeadWeight = true;
+    } else if (athChangePct >= -35.0 || liquidityRatio >= 0.20) {
+      // Rejuvenescimento: perto do ATH ou volume forte
+      deadWeightRisk = 0;
+      isDeadWeight = false;
+    } else {
+      deadWeightRisk = 10;
+    }
+  }
+
+  riskScore += deadWeightRisk;
+  components.athChangePct = parseFloat(athChangePct.toFixed(1));
+  components.deadWeightRisk = deadWeightRisk;
+  components.isDeadWeight = isDeadWeight;
 
   // Normalização final (0 a 100)
   const finalRiskScore = Math.max(0, Math.min(100, riskScore));

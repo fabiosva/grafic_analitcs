@@ -1,5 +1,13 @@
 [
   {
+    "coin_id": "dog-go-to-the-moon-rune",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] DOG (Dog (Bitcoin))</b>\n📊 <b>Final Score:</b> 66.9/100\n🎯 <b>Opportunity:</b> 74.4 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $0,001 (+58.61% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.05x | 📈 <b>RSI:</b> 77.3\n🔗 <a href=\"https://www.coingecko.com/en/coins/dog-go-to-the-moon-rune\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-24T13:05:12.052Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
     "coin_id": "cash-cat",
     "type": "boom_watch",
     "message": "🚀 <b>[BOOM WATCH] CASHCAT (Cash Cat)</b>\n📊 <b>Final Score:</b> 73.3/100\n🎯 <b>Opportunity:</b> 73.3 | 🛡️ <b>Risco:</b> 0\n💰 <b>Preço:</b> $0,163 (+44.52% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.04x | 📈 <b>RSI:</b> 68.2\n🔗 <a href=\"https://www.coingecko.com/en/coins/cash-cat\">Ver no CoinGecko</a>",

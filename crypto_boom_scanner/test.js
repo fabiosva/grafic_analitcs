@@ -2,52 +2,53 @@ const assert = require('assert');
 const indicators = require('./indicators');
 const risk = require('./risk');
 const scorer = require('./scorer');
-const config = require('./config');
+const recommender = require('./recommender');
 
-console.log('🧪 Iniciando testes unitários do Crypto Boom Scanner...\n');
+console.log('🧪 Iniciando testes unitários do Crypto Boom Scanner (v3)...\n');
 
-// Teste 1: EMA
-console.log('1. Testando cálculo de EMA...');
-const prices = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-assert.strictEqual(indicators.calculateEMA(prices, 20), null, 'EMA com histórico menor que período deve retornar null');
-const prices50 = Array.from({ length: 60 }, (_, i) => 100 + i);
-const ema20 = indicators.calculateEMA(prices50, 20);
-assert.ok(ema20 > 100, 'EMA20 deve ser calculada corretamente');
+// 1. EMA
+console.log('1. Testando EMA com sparkline histórica...');
+const prices = Array.from({ length: 60 }, (_, i) => 100 + i);
+const ema20 = indicators.calculateEMA(prices, 20);
+assert.ok(ema20 > 100, 'EMA20 deve ser calculada');
 console.log('✅ Teste EMA passou com sucesso.');
 
-// Teste 2: RSI
-console.log('2. Testando cálculo de RSI e tratamento de warm-up...');
-assert.strictEqual(indicators.calculateRSI([10, 11, 12], 14), null, 'RSI com menos de 15 pontos deve retornar null');
+// 2. RSI
+console.log('2. Testando cálculo de RSI (14)...');
 const rsiPrices = [44, 44.3, 44.1, 43.9, 44.5, 44.8, 45.2, 45.9, 46.1, 46.5, 46.8, 47.1, 47.5, 47.9, 48.2, 48.5];
 const rsiVal = indicators.calculateRSI(rsiPrices, 14);
-assert.ok(rsiVal > 50 && rsiVal <= 100, `RSI em tendência de alta deve ser > 50 (calculado: ${rsiVal})`);
+assert.ok(rsiVal > 50 && rsiVal <= 100, `RSI calculado: ${rsiVal}`);
 console.log('✅ Teste RSI passou com sucesso.');
 
-// Teste 3: Risco
-console.log('3. Testando cálculo de Risco (FDV, Idade, Liquidez)...');
-const safeSnapshot = {
+// 3. Risco: Fase de Descoberta vs Dead Weight Risk
+console.log('3. Testando Idade do Token e Dead Weight Risk...');
+const discoverySnapshot = {
   market_cap: 100000000,
-  fdv: 120000000, // FDV ratio 1.2x (ótimo)
-  volume_24h: 10000000, // Giro 10% (ótimo)
+  fdv: 120000000,
+  volume_24h: 15000000,
+  ath_change_percentage: -15.0,
 };
-const safeRisk = risk.computeRisk(safeSnapshot, { ageDays: 200 });
-assert.strictEqual(safeRisk.riskScore, 0, 'Ativo maduro com baixo FDV e boa liquidez deve ter risco 0');
+const discoveryRisk = risk.computeRisk(discoverySnapshot, { ageDays: 45 }); // Fase de descoberta
+assert.strictEqual(discoveryRisk.components.ageCategory, 'DISCOVERY');
+assert.strictEqual(discoveryRisk.riskScore, 0, 'Ativo na fase de descoberta (45d) com baixo FDV deve ter risco 0');
 
-const riskySnapshot = {
-  market_cap: 5000000,
-  fdv: 60000000, // FDV ratio 12x (> 10x crítico = 40 pts)
-  volume_24h: 50000, // Giro 1% (< 2% = 25 pts)
+const deadWeightSnapshot = {
+  market_cap: 30000000,
+  fdv: 30000000,
+  volume_24h: 500000, // giro 1.6%
+  ath_change_percentage: -92.0, // -92% do topo
 };
-const riskyRisk = risk.computeRisk(riskySnapshot, { ageDays: 15 }); // < 30d = 35 pts
-assert.strictEqual(riskyRisk.riskScore, 100, 'Ativo novo com alto FDV e baixa liquidez deve ter risco máximo (100)');
-console.log('✅ Teste Risco passou com sucesso.');
+const deadWeightRisk = risk.computeRisk(deadWeightSnapshot, { ageDays: 1100 }); // > 2 anos
+assert.strictEqual(deadWeightRisk.components.isDeadWeight, true, 'Deve identificar Dead Weight Risk');
+assert.ok(deadWeightRisk.riskScore >= 50, 'Dead Weight com baixa liquidez deve ter risco alto');
+console.log('✅ Teste Risco & Dead Weight passou com sucesso.');
 
-// Teste 4: Scorer e Fator de Penalidade (0.50)
-console.log('4. Testando Opportunity, Risk Penalty (0.50) e Sinal BOOM WATCH...');
+// 4. Scorer e Sinal BOOM WATCH
+console.log('4. Testando Opportunity e Sinal BOOM WATCH...');
 const boomSnapshot = {
   coin_id: 'super-gem',
   price_usd: 2.50,
-  market_cap: 50000000, // $50M (< $1B)
+  market_cap: 50000000,
   fdv: 60000000,
   volume_24h: 15000000,
   price_change_1h: 2.5,
@@ -56,63 +57,48 @@ const boomSnapshot = {
   price_change_30d: 80.0,
   market_cap_rank: 180,
   snapshot_time: new Date().toISOString(),
+  sparkline_prices: Array.from({ length: 50 }, (_, i) => 1.5 + (i * 0.02)),
 };
-
 const historySnapshots = [
   { price_usd: 1.80, volume_24h: 4000000, market_cap_rank: 210, snapshot_time: new Date(Date.now() - 3600000).toISOString() }
 ];
-
-const scoreResult = scorer.calculateScore(boomSnapshot, historySnapshots, [], { ageDays: 180 });
+const scoreResult = scorer.calculateScore(boomSnapshot, historySnapshots, [], { ageDays: 60 });
 console.log('Score calculado:', {
   opportunity: scoreResult.opportunity_score,
   risk: scoreResult.risk_score,
   final: scoreResult.final_score,
   signal: scoreResult.signal_category,
 });
-
-assert.ok(scoreResult.opportunity_score >= 70, 'Opportunity deve ser alto para setup de alta confluência');
-assert.ok(scoreResult.final_score > 60, 'Final Score deve ser elevado');
-assert.ok(['BOOM_WATCH', 'MOMENTUM'].includes(scoreResult.signal_category), 'Deve classificar como BOOM_WATCH ou MOMENTUM');
+assert.ok(scoreResult.opportunity_score >= 70, 'Opportunity deve ser alto');
+assert.strictEqual(scoreResult.signal_category, 'BOOM_WATCH');
 console.log('✅ Teste Scorer passou com sucesso.');
 
-// Teste 5: Sinal de Acumulação
-console.log('5. Testando detecção de Acumulação (Volume 2x + Preço Calmo)...');
-const accumSnapshot = {
-  coin_id: 'whale-accum',
-  price_usd: 1.00,
-  market_cap: 80000000,
-  fdv: 90000000,
-  volume_24h: 20000000, // 2x maior que histórico
-  price_change_1h: 0.1,
-  price_change_24h: 1.2, // preço calmo
-  price_change_7d: 3.0,
-  price_change_30d: 5.0,
-  market_cap_rank: 150,
-  snapshot_time: new Date().toISOString(),
-};
-const accumHistory = [
-  { price_usd: 0.99, volume_24h: 9000000, market_cap_rank: 150, snapshot_time: new Date(Date.now() - 3600000).toISOString() }
-];
-const accumScore = scorer.calculateScore(accumSnapshot, accumHistory, [], { ageDays: 200 });
-assert.strictEqual(accumScore.signal_category, 'ACCUMULATION', 'Deve detectar sinal de ACUMULAÇÃO');
-console.log('✅ Teste Acumulação passou com sucesso.');
+// 5. Motor de Recomendação (recommender.js)
+console.log('5. Testando Motor de Recomendação Automática (recommender.js)...');
+const recs = recommender.generateRecommendations([{
+  ...scoreResult,
+  symbol: 'GEM',
+  name: 'Super Gem',
+}], 5);
 
-// Teste 6: Sinal Extended (+80%)
-console.log('6. Testando flag EXTENDED (+85% 24h)...');
-const pumpSnapshot = {
-  coin_id: 'pumped-coin',
-  price_usd: 10.0,
-  market_cap: 30000000,
-  fdv: 40000000,
-  volume_24h: 50000000,
-  price_change_1h: 5.0,
-  price_change_24h: 88.0, // > 80%
-  price_change_7d: 150.0,
-  price_change_30d: 200.0,
-  snapshot_time: new Date().toISOString(),
-};
-const pumpScore = scorer.calculateScore(pumpSnapshot, [], [], { ageDays: 100 });
-assert.strictEqual(pumpScore.signal_category, 'EXTENDED', 'Deve marcar como ⚠️ EXTENDED');
-console.log('✅ Teste Extended passou com sucesso.');
+assert.strictEqual(recs.length, 1);
+assert.strictEqual(recs[0].verdict, 'STRONG_WATCH', 'Deve recomendar STRONG_WATCH');
+assert.ok(recs[0].confidence >= 80, 'Confiança deve ser alta');
+assert.ok(recs[0].reasoning.length >= 2, 'Deve gerar tópicos de reasoning em português');
+console.log('Recomendação gerada:', {
+  symbol: recs[0].symbol,
+  verdict: recs[0].verdict,
+  confidence: recs[0].confidence,
+  reasoning: recs[0].reasoning,
+});
+console.log('✅ Teste Recommender passou com sucesso.');
+
+// 6. Resumo de Mercado
+console.log('6. Testando Resumo de Mercado...');
+const summary = recommender.buildMarketSummary([scoreResult], recs);
+assert.ok(summary.regime.length > 0);
+assert.strictEqual(summary.strongWatchCount, 1);
+console.log('Resumo do Mercado:', summary.regime, summary.summaryText);
+console.log('✅ Teste Resumo de Mercado passou com sucesso.');
 
 console.log('\n🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO!\n');

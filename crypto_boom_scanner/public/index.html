@@ -3,24 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crypto Analytics Hub — Boom Scanner & Painel BTC</title>
+  <title>Crypto Analytics Hub — Boom Scanner (v3) & Painel BTC</title>
   <!-- Tailwind CSS & FontAwesome -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            brand: {
-              50: '#f0fdf4',
-              500: '#22c55e',
-              600: '#16a34a',
-              900: '#14532d',
-            },
             darkbg: '#090d16',
             darkcard: '#111827',
             darkborder: '#1f293d',
@@ -32,13 +24,13 @@
   <style>
     body { background-color: #090d16; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
     .glass { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid #1f293d; }
+    .badge-strong { background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: 800; }
     .badge-boom { background: linear-gradient(135deg, #ef4444, #f59e0b); color: #fff; font-weight: 800; }
     .badge-momentum { background: linear-gradient(135deg, #f59e0b, #eab308); color: #000; font-weight: 800; }
     .badge-acc { background: linear-gradient(135deg, #3b82f6, #06b6d4); color: #fff; font-weight: 800; }
     .badge-risk { background: #7f1d1d; color: #fca5a5; font-weight: 800; }
     .badge-extended { background: #713f12; color: #fde047; font-weight: 800; }
     .badge-neutral { background: #1f2937; color: #9ca3af; }
-    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #090d16; }
     ::-webkit-scrollbar-thumb { background: #273449; border-radius: 4px; }
@@ -55,17 +47,17 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-xl font-extrabold tracking-tight text-white">Crypto Analytics Hub</h1>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">Node.js Unificado</span>
+            <h1 class="text-xl font-extrabold tracking-tight text-white">Crypto Boom Scanner</h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">v3.0</span>
           </div>
-          <p class="text-xs text-slate-400">Triagem de Altcoins & Monitoramento On-chain de Fundo do Bitcoin</p>
+          <p class="text-xs text-slate-400">Triagem de Altcoins & Buy Signal Engine com Filtro de Idade e Dead Weight</p>
         </div>
       </div>
 
       <!-- Navigation Tabs -->
       <nav class="flex space-x-1 bg-slate-900/90 p-1.5 rounded-xl border border-darkborder text-sm font-medium">
         <button onclick="switchTab('scanner')" id="tab-btn-scanner" class="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold transition shadow-md">
-          <i class="fa-solid fa-rocket mr-1.5"></i> 🚀 Crypto Boom Scanner
+          <i class="fa-solid fa-rocket mr-1.5"></i> 🚀 Scanner & Vereditos
         </button>
         <button onclick="switchTab('btc')" id="tab-btn-btc" class="px-4 py-2 rounded-lg text-amber-400 hover:text-white transition">
           <i class="fa-brands fa-bitcoin mr-1.5"></i> ₿ Painel Fundo BTC
@@ -86,7 +78,7 @@
         </div>
         <button onclick="triggerScan()" id="btn-trigger" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-sm font-medium rounded-xl border border-darkborder flex items-center gap-2 transition">
           <i class="fa-solid fa-arrows-rotate" id="trigger-icon"></i>
-          <span>Escanear</span>
+          <span>Escanear Agora</span>
         </button>
       </div>
     </div>
@@ -95,86 +87,145 @@
   <!-- Main Container -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
 
-    <!-- ==================== TAB 1: BOOM SCANNER ==================== -->
+    <!-- ==================== TAB 1: BOOM SCANNER & RECOMMENDATIONS ==================== -->
     <div id="tab-scanner" class="space-y-6">
-      
-      <!-- Top Metrics Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="glass p-5 rounded-2xl border-l-4 border-l-rose-500">
-          <div class="flex justify-between items-center text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>🚀 Boom Watch</span>
-            <i class="fa-solid fa-fire text-rose-400"></i>
-          </div>
-          <div class="mt-2 flex items-baseline gap-2">
-            <span class="text-3xl font-black text-white" id="count-boom">0</span>
-            <span class="text-xs text-rose-400 font-medium">Breakout + Vol 2x</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-1">Confluência de momentum e baixo risco</p>
-        </div>
 
-        <div class="glass p-5 rounded-2xl border-l-4 border-l-cyan-500">
-          <div class="flex justify-between items-center text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>🐋 Acumulação</span>
-            <i class="fa-solid fa-water text-cyan-400"></i>
-          </div>
-          <div class="mt-2 flex items-baseline gap-2">
-            <span class="text-3xl font-black text-white" id="count-accum">0</span>
-            <span class="text-xs text-cyan-400 font-medium">Volume &ge; 1.8x + Preço calmo</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-1">Acúmulo silencioso pré-explosão</p>
+      <!-- Market Regime Banner -->
+      <div class="glass p-5 rounded-2xl border border-blue-500/30 flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <span class="text-sky-400 font-bold text-xs uppercase tracking-wider">🧠 Inteligência de Mercado & Regime do Ciclo</span>
+          <h3 id="market-regime-title" class="text-xl font-extrabold text-white mt-1">Carregando análise do mercado...</h3>
+          <p id="market-summary-text" class="text-xs text-slate-300 mt-1">Calculando variação do Top 300 e ativos em momentum.</p>
         </div>
-
-        <div class="glass p-5 rounded-2xl border-l-4 border-l-amber-500">
-          <div class="flex justify-between items-center text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>🔥 Momentum Forte</span>
-            <i class="fa-solid fa-bolt text-amber-400"></i>
-          </div>
-          <div class="mt-2 flex items-baseline gap-2">
-            <span class="text-3xl font-black text-white" id="count-momentum">0</span>
-            <span class="text-xs text-amber-400 font-medium">Preço e volume em alta</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-1">Tendência acelerada confirmada</p>
-        </div>
-
-        <div class="glass p-5 rounded-2xl border-l-4 border-l-emerald-500">
-          <div class="flex justify-between items-center text-slate-400 text-xs font-semibold uppercase tracking-wider">
-            <span>⭐ Score Líder</span>
-            <i class="fa-solid fa-trophy text-emerald-400"></i>
-          </div>
-          <div class="mt-2 flex items-baseline gap-2">
-            <span class="text-3xl font-black text-emerald-400" id="top-score-val">--</span>
-            <span class="text-xs text-slate-300 font-bold" id="top-score-symbol">--</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-1">Maior oportunidade com desconto de risco</p>
+        <div id="regime-badge-container">
+          <span id="regime-badge" class="px-4 py-2 rounded-xl text-sm font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">RISCO-ON</span>
         </div>
       </div>
 
-      <!-- Filters and Search Bar -->
-      <div class="glass p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="filterCategory('ALL')" class="filter-btn active px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-white border border-darkborder">
-            Todas
-          </button>
-          <button onclick="filterCategory('BOOM_WATCH')" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold text-rose-400 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40">
-            🚀 Boom Watch
-          </button>
-          <button onclick="filterCategory('ACCUMULATION')" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold text-cyan-400 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/40">
-            🐋 Acumulação
-          </button>
-          <button onclick="filterCategory('MOMENTUM')" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold text-amber-400 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/40">
-            🔥 Momentum
-          </button>
-          <button onclick="filterCategory('HIGH_RISK')" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold text-red-400 bg-red-950/40 hover:bg-red-900/60 border border-red-800/40">
-            ⚠️ Alto Risco
-          </button>
-          <button onclick="filterCategory('EXTENDED')" class="filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold text-yellow-400 bg-yellow-950/40 hover:bg-yellow-900/60 border border-yellow-800/40">
-            ⚠️ Extended (+80%)
-          </button>
+      <!-- Top 5 Recommendation Cards (Buy Signal Engine) -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-award text-emerald-400"></i> Top Recomendações do Sistema (Buy Signal Engine)
+          </h3>
+          <span class="text-xs text-slate-400">Filtradas por Momentum, Idade e Baixo Risco</span>
+        </div>
+        <div id="recommendations-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <!-- Preenchido dinamicamente via JS -->
+        </div>
+      </div>
+
+      <!-- Top Metrics Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass p-4 rounded-2xl border-l-4 border-l-rose-500">
+          <div class="flex justify-between items-center text-slate-400 text-xs font-semibold uppercase">
+            <span>🚀 Boom Watch</span>
+            <i class="fa-solid fa-fire text-rose-400"></i>
+          </div>
+          <div class="mt-1 flex items-baseline gap-2">
+            <span class="text-2xl font-black text-white" id="count-boom">0</span>
+            <span class="text-xs text-rose-400 font-medium">Breakout + Vol 2x</span>
+          </div>
         </div>
 
-        <div class="relative w-full sm:w-72">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
-          <input type="text" id="search-input" onkeyup="renderTable()" placeholder="Buscar moeda ou símbolo..." class="w-full bg-slate-900/90 border border-darkborder rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+        <div class="glass p-4 rounded-2xl border-l-4 border-l-cyan-500">
+          <div class="flex justify-between items-center text-slate-400 text-xs font-semibold uppercase">
+            <span>🐋 Acumulação</span>
+            <i class="fa-solid fa-water text-cyan-400"></i>
+          </div>
+          <div class="mt-1 flex items-baseline gap-2">
+            <span class="text-2xl font-black text-white" id="count-accum">0</span>
+            <span class="text-xs text-cyan-400 font-medium">Vol &ge; 1.8x + Preço calmo</span>
+          </div>
+        </div>
+
+        <div class="glass p-4 rounded-2xl border-l-4 border-l-amber-500">
+          <div class="flex justify-between items-center text-slate-400 text-xs font-semibold uppercase">
+            <span>🔥 Momentum</span>
+            <i class="fa-solid fa-bolt text-amber-400"></i>
+          </div>
+          <div class="mt-1 flex items-baseline gap-2">
+            <span class="text-2xl font-black text-white" id="count-momentum">0</span>
+            <span class="text-xs text-amber-400 font-medium">Preço e volume em alta</span>
+          </div>
+        </div>
+
+        <div class="glass p-4 rounded-2xl border-l-4 border-l-emerald-500">
+          <div class="flex justify-between items-center text-slate-400 text-xs font-semibold uppercase">
+            <span>⭐ Score Líder</span>
+            <i class="fa-solid fa-trophy text-emerald-400"></i>
+          </div>
+          <div class="mt-1 flex items-baseline gap-2">
+            <span class="text-2xl font-black text-emerald-400" id="top-score-val">--</span>
+            <span class="text-xs text-slate-300 font-bold" id="top-score-symbol">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced CoinMarketCap-style Filters -->
+      <div class="glass p-4 rounded-2xl space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="filterCategory('ALL')" class="filter-btn active px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-white border border-darkborder">
+              Todas
+            </button>
+            <button onclick="filterCategory('BOOM_WATCH')" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold text-rose-400 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40">
+              🚀 Boom Watch
+            </button>
+            <button onclick="filterCategory('ACCUMULATION')" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold text-cyan-400 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/40">
+              🐋 Acumulação
+            </button>
+            <button onclick="filterCategory('MOMENTUM')" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold text-amber-400 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/40">
+              🔥 Momentum
+            </button>
+            <button onclick="filterCategory('HIGH_RISK')" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-bold text-red-400 bg-red-950/40 hover:bg-red-900/60 border border-red-800/40">
+              ⚠️ Alto Risco
+            </button>
+          </div>
+
+          <div class="relative w-full sm:w-72">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+            <input type="text" id="search-input" onkeyup="renderTable()" placeholder="Buscar moeda ou símbolo..." class="w-full bg-slate-900/90 border border-darkborder rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <!-- Secondary Filter Controls -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-2 border-t border-darkborder">
+          <div>
+            <label class="text-slate-400 block mb-1 font-semibold">Idade do Token:</label>
+            <select id="filter-age" onchange="renderTable()" class="w-full bg-slate-900 border border-darkborder rounded-lg p-1.5 text-white">
+              <option value="ALL">Qualquer Idade</option>
+              <option value="DISCOVERY">🌱 Fase de Descoberta (30-180d)</option>
+              <option value="NEW">⚡ Novos (< 30d)</option>
+              <option value="MATURING">🛡️ Menos de 1 ano</option>
+              <option value="VETERAN">🏛️ Veteranas (> 2 anos)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-slate-400 block mb-1 font-semibold">Market Cap:</label>
+            <select id="filter-mcap" onchange="renderTable()" class="w-full bg-slate-900 border border-darkborder rounded-lg p-1.5 text-white">
+              <option value="ALL">Todos os Tamanhos</option>
+              <option value="MICRO">Micro Cap (< $50M)</option>
+              <option value="SMALL">Small Cap ($50M - $300M)</option>
+              <option value="MID">Mid Cap ($300M - $2B)</option>
+              <option value="LARGE">Large Cap (> $2B)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-slate-400 block mb-1 font-semibold">Volume 24h Mínimo:</label>
+            <select id="filter-vol" onchange="renderTable()" class="w-full bg-slate-900 border border-darkborder rounded-lg p-1.5 text-white">
+              <option value="0">Sem Mínimo</option>
+              <option value="100000">$100.000+</option>
+              <option value="500000">$500.000+</option>
+              <option value="2000000">$2.000.000+</option>
+            </select>
+          </div>
+          <div class="flex items-center pt-4">
+            <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+              <input type="checkbox" id="filter-deadweight" onchange="renderTable()" class="rounded bg-slate-900 border-darkborder text-emerald-500">
+              <span>Ocultar Dead Weight</span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -191,14 +242,16 @@
                 <th class="py-3.5 px-4 text-center">Sinal</th>
                 <th class="py-3.5 px-4 text-right cursor-pointer" onclick="sortTable('price_usd')">Preço</th>
                 <th class="py-3.5 px-4 text-right cursor-pointer" onclick="sortTable('price_change_24h')">24h %</th>
+                <th class="py-3.5 px-4 text-right">RSI (14)</th>
                 <th class="py-3.5 px-4 text-right">Vol Accel 7d</th>
-                <th class="py-3.5 px-4 text-center">Delta 24h</th>
+                <th class="py-3.5 px-4 text-center">Idade</th>
+                <th class="py-3.5 px-4 text-center">Dist. ATH</th>
                 <th class="py-3.5 px-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody id="screener-tbody" class="divide-y divide-darkborder font-mono">
               <tr>
-                <td colspan="10" class="text-center py-12 text-slate-500">
+                <td colspan="12" class="text-center py-12 text-slate-500">
                   <i class="fa-solid fa-spinner fa-spin text-2xl mb-3 text-emerald-500"></i>
                   <p>Carregando dados do scanner em tempo real...</p>
                 </td>
@@ -210,7 +263,7 @@
 
     </div>
 
-    <!-- ==================== TAB 2: PAINEL FUNDO BTC ==================== -->
+    <!-- ==================== TAB 2: BTC BOTTOM PANEL ==================== -->
     <div id="tab-btc" class="space-y-6 hidden">
       <div class="glass p-6 rounded-2xl space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-4 border-b border-darkborder pb-4">
@@ -229,12 +282,11 @@
           </div>
         </div>
 
-        <!-- BTC Score Overview Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="bg-slate-900/90 p-5 rounded-xl border border-darkborder text-center">
             <span class="text-xs text-slate-400 uppercase font-semibold">Score de Fundo</span>
             <div class="text-4xl font-black text-amber-400 font-mono mt-2" id="btc-score">--/100</div>
-            <p class="text-[11px] text-slate-400 mt-1" id="btc-score-desc">Condições obrigatórias ativas</p>
+            <p class="text-[11px] text-slate-400 mt-1">Condições obrigatórias ativas</p>
           </div>
           <div class="bg-slate-900/90 p-5 rounded-xl border border-darkborder text-center">
             <span class="text-xs text-slate-400 uppercase font-semibold">Condições Obrigatórias</span>
@@ -248,7 +300,6 @@
           </div>
         </div>
 
-        <!-- BTC Indicators Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
           <div class="bg-slate-900 p-4 rounded-xl border border-darkborder">
             <span class="text-slate-400 block mb-1 font-sans">MVRV Z-Score</span>
@@ -266,22 +317,6 @@
             <span class="text-slate-400 block mb-1 font-sans">RSI Diário</span>
             <span id="btc-rsi" class="text-base font-bold text-white">--</span>
           </div>
-          <div class="bg-slate-900 p-4 rounded-xl border border-darkborder">
-            <span class="text-slate-400 block mb-1 font-sans">NUPL</span>
-            <span id="btc-nupl" class="text-base font-bold text-white">--</span>
-          </div>
-          <div class="bg-slate-900 p-4 rounded-xl border border-darkborder">
-            <span class="text-slate-400 block mb-1 font-sans">Puell Multiple</span>
-            <span id="btc-puell" class="text-base font-bold text-white">--</span>
-          </div>
-          <div class="bg-slate-900 p-4 rounded-xl border border-darkborder">
-            <span class="text-slate-400 block mb-1 font-sans">SMA 200</span>
-            <span id="btc-sma200" class="text-base font-bold text-white">--</span>
-          </div>
-          <div class="bg-slate-900 p-4 rounded-xl border border-darkborder">
-            <span class="text-slate-400 block mb-1 font-sans">Reserve Risk</span>
-            <span id="btc-reserve-risk" class="text-base font-bold text-white">--</span>
-          </div>
         </div>
       </div>
     </div>
@@ -292,14 +327,12 @@
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-chart-pie text-emerald-400"></i>
-              Validação Estatística do Score (Backtesting)
+              <i class="fa-solid fa-chart-pie text-emerald-400"></i> Validação Estatística do Score (Backtesting)
             </h2>
             <p class="text-xs text-slate-400">Desempenho histórico de retornos em 7, 14 e 30 dias após atingir cada faixa de score.</p>
           </div>
-          <button onclick="runBacktestTrigger()" id="btn-recalc-backtest" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center gap-2">
-            <i class="fa-solid fa-calculator" id="backtest-icon"></i>
-            <span>Recalcular Backtest</span>
+          <button onclick="runBacktestTrigger()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition">
+            <i class="fa-solid fa-calculator mr-1"></i> Recalcular Backtest
           </button>
         </div>
 
@@ -318,9 +351,7 @@
                 <th class="py-3 px-4 text-right">Max Drawdown</th>
               </tr>
             </thead>
-            <tbody id="backtest-tbody" class="divide-y divide-darkborder font-mono">
-              <!-- Preenchido via JS -->
-            </tbody>
+            <tbody id="backtest-tbody" class="divide-y divide-darkborder font-mono"></tbody>
           </table>
         </div>
       </div>
@@ -330,11 +361,8 @@
     <div id="tab-alerts" class="space-y-6 hidden">
       <div class="glass p-6 rounded-2xl space-y-4">
         <h2 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-paper-plane text-emerald-400"></i>
-          Histórico de Alertas & Notificações Telegram
+          <i class="fa-solid fa-paper-plane text-emerald-400"></i> Histórico de Alertas & Notificações Telegram
         </h2>
-        <p class="text-xs text-slate-400">Registro cronológico de sinais disparados com controle anti-duplicação (cooldown ativo).</p>
-
         <div class="divide-y divide-darkborder rounded-xl border border-darkborder overflow-hidden" id="alerts-list">
           <div class="p-4 text-center text-slate-500 text-xs">Nenhum alerta recente registrado.</div>
         </div>
@@ -353,7 +381,6 @@
             <div class="flex items-center gap-2">
               <h3 id="modal-coin-name" class="text-xl font-bold text-white">--</h3>
               <span id="modal-coin-symbol" class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">--</span>
-              <span id="modal-warmup-badge" class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 hidden">Aquecendo Histórico</span>
             </div>
             <p id="modal-coin-price" class="text-sm font-mono text-emerald-400 font-bold">$0.00</p>
           </div>
@@ -363,7 +390,6 @@
         </button>
       </div>
 
-      <!-- Score Breakdown Card -->
       <div class="grid grid-cols-3 gap-3 text-center">
         <div class="bg-slate-900/90 p-3 rounded-xl border border-darkborder">
           <div class="text-[11px] text-slate-400 uppercase font-semibold">Final Score</div>
@@ -374,51 +400,30 @@
           <div id="modal-opp-score" class="text-2xl font-black text-amber-400 font-mono">--</div>
         </div>
         <div class="bg-slate-900/90 p-3 rounded-xl border border-darkborder">
-          <div class="text-[11px] text-slate-400 uppercase font-semibold">Risco (x0.5)</div>
+          <div class="text-[11px] text-slate-400 uppercase font-semibold">Risco (-50%)</div>
           <div id="modal-risk-score" class="text-2xl font-black text-rose-400 font-mono">--</div>
         </div>
       </div>
 
-      <!-- Technical & Fundamental Metrics -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
         <div class="bg-slate-900 p-3 rounded-xl border border-darkborder">
           <span class="text-slate-400 block mb-1">RSI (14)</span>
           <span id="modal-rsi" class="font-mono font-bold text-white text-sm">--</span>
         </div>
         <div class="bg-slate-900 p-3 rounded-xl border border-darkborder">
-          <span class="text-slate-400 block mb-1">Vol Accel 7d</span>
-          <span id="modal-vol-accel" class="font-mono font-bold text-white text-sm">--</span>
+          <span class="text-slate-400 block mb-1">Idade do Token</span>
+          <span id="modal-age" class="font-mono font-bold text-white text-sm">--</span>
         </div>
         <div class="bg-slate-900 p-3 rounded-xl border border-darkborder">
-          <span class="text-slate-400 block mb-1">FDV / MCap</span>
-          <span id="modal-fdv-ratio" class="font-mono font-bold text-white text-sm">--</span>
+          <span class="text-slate-400 block mb-1">Distância do ATH</span>
+          <span id="modal-ath" class="font-mono font-bold text-white text-sm">--</span>
         </div>
         <div class="bg-slate-900 p-3 rounded-xl border border-darkborder">
-          <span class="text-slate-400 block mb-1">Breakout 30d</span>
-          <span id="modal-breakout" class="font-mono font-bold text-white text-sm">--</span>
+          <span class="text-slate-400 block mb-1">Dead Weight Risk</span>
+          <span id="modal-deadweight" class="font-mono font-bold text-white text-sm">--</span>
         </div>
       </div>
 
-      <!-- Scores Delta History -->
-      <div class="bg-slate-900 p-4 rounded-xl border border-darkborder space-y-2">
-        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Aceleração de Score (Deltas)</h4>
-        <div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
-          <div class="p-2 bg-slate-950 rounded-lg">
-            <span class="text-slate-400 block text-[10px]">Delta 6h</span>
-            <span id="modal-delta-6h" class="font-bold">--</span>
-          </div>
-          <div class="p-2 bg-slate-950 rounded-lg">
-            <span class="text-slate-400 block text-[10px]">Delta 12h</span>
-            <span id="modal-delta-12h" class="font-bold">--</span>
-          </div>
-          <div class="p-2 bg-slate-950 rounded-lg">
-            <span class="text-slate-400 block text-[10px]">Delta 24h</span>
-            <span id="modal-delta-24h" class="font-bold">--</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Links -->
       <div class="flex justify-end gap-2 pt-2 border-t border-darkborder">
         <a id="modal-cg-link" href="#" target="_blank" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition">
           <i class="fa-solid fa-arrow-up-right-from-square"></i> Ver no CoinGecko
@@ -427,9 +432,9 @@
     </div>
   </div>
 
-  <!-- JavaScript Frontend Logic -->
   <script>
     let currentData = [];
+    let currentRecs = [];
     let currentCategoryFilter = 'ALL';
     let sortColumn = 'final_score';
     let sortDirection = 'desc';
@@ -473,52 +478,115 @@
           if (currentData.length > 0) {
             const date = new Date(currentData[0].created_at);
             document.getElementById('last-update-time').textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
             document.getElementById('top-score-val').textContent = currentData[0].final_score;
             document.getElementById('top-score-symbol').textContent = (currentData[0].coins?.symbol || currentData[0].coin_id).toUpperCase();
           }
 
-          const boomCount = currentData.filter(d => d.signal_category === 'BOOM_WATCH').length;
-          const accumCount = currentData.filter(d => d.signal_category === 'ACCUMULATION').length;
-          const momentumCount = currentData.filter(d => d.signal_category === 'MOMENTUM').length;
-
-          document.getElementById('count-boom').textContent = boomCount;
-          document.getElementById('count-accum').textContent = accumCount;
-          document.getElementById('count-momentum').textContent = momentumCount;
+          document.getElementById('count-boom').textContent = currentData.filter(d => d.signal_category === 'BOOM_WATCH').length;
+          document.getElementById('count-accum').textContent = currentData.filter(d => d.signal_category === 'ACCUMULATION').length;
+          document.getElementById('count-momentum').textContent = currentData.filter(d => d.signal_category === 'MOMENTUM').length;
 
           renderTable();
         }
+
+        // Carregar recomendações
+        const recRes = await fetch('/api/scanner/recommendations');
+        const recJson = await recRes.json();
+        if (recJson.success) {
+          currentRecs = recJson.data || [];
+          renderRecommendations(recJson.summary, currentRecs);
+        }
       } catch (err) {
-        console.error('Erro carregando rankings:', err);
+        console.error('Erro carregando dados:', err);
       }
+    }
+
+    function renderRecommendations(summary, recs) {
+      if (summary) {
+        document.getElementById('market-regime-title').textContent = summary.regime;
+        document.getElementById('market-summary-text').textContent = summary.summaryText;
+        const badge = document.getElementById('regime-badge');
+        badge.textContent = summary.regime.split(' ')[0];
+        badge.style.color = summary.regimeColor;
+      }
+
+      const container = document.getElementById('recommendations-container');
+      if (!recs || recs.length === 0) {
+        container.innerHTML = `<div class="col-span-5 text-slate-500 text-xs py-4 text-center">Nenhuma recomendação disponível.</div>`;
+        return;
+      }
+
+      container.innerHTML = recs.slice(0, 5).map(r => {
+        const v = r.verdict;
+        const color = v === 'STRONG_WATCH' ? '#10b981' : (v === 'WATCH' ? '#38bdf8' : (v === 'TOO_EXTENDED' ? '#f59e0b' : '#ef4444'));
+        const price = r.price_at_recommendation < 1 ? `$${r.price_at_recommendation.toFixed(4)}` : `$${r.price_at_recommendation.toFixed(2)}`;
+
+        return `
+          <div class="bg-slate-900/90 p-3.5 rounded-xl border border-darkborder hover:border-slate-600 transition flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center">
+                <span class="font-black text-white text-base">${r.symbol}</span>
+                <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full" style="background:${color}22; color:${color}; border:1px solid ${color}44;">${v}</span>
+              </div>
+              <div class="text-[11px] text-slate-400 truncate mt-0.5">${r.name}</div>
+              <div class="text-sm font-bold text-slate-200 mt-2">${price}</div>
+              <div class="text-[11px] text-emerald-400 font-bold">Score: ${r.final_score}/100</div>
+              <div class="text-[11px] text-slate-300 mt-2 space-y-1">
+                ${r.reasoning.slice(0, 2).map(re => `<p class="line-clamp-2">• ${re}</p>`).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     function renderTable() {
       const search = document.getElementById('search-input').value.toLowerCase().trim();
+      const ageFilter = document.getElementById('filter-age').value;
+      const mcapFilter = document.getElementById('filter-mcap').value;
+      const volFilter = parseFloat(document.getElementById('filter-vol').value) || 0;
+      const deadWeightFilter = document.getElementById('filter-deadweight').checked;
+
       let filtered = currentData.filter(item => {
         const symbol = (item.coins?.symbol || item.coin_id).toLowerCase();
         const name = (item.coins?.name || '').toLowerCase();
         const matchSearch = symbol.includes(search) || name.includes(search);
         const matchCat = currentCategoryFilter === 'ALL' || item.signal_category === currentCategoryFilter;
-        return matchSearch && matchCat;
+
+        const ageDays = item.components?.riskComponents?.ageDays || item.coins?.age_days || 60;
+        let matchAge = true;
+        if (ageFilter === 'DISCOVERY') matchAge = (ageDays >= 30 && ageDays <= 180);
+        else if (ageFilter === 'NEW') matchAge = (ageDays < 30);
+        else if (ageFilter === 'MATURING') matchAge = (ageDays <= 365);
+        else if (ageFilter === 'VETERAN') matchAge = (ageDays > 730);
+
+        const mcap = item.components?.marketCap || 0;
+        let matchMcap = true;
+        if (mcapFilter === 'MICRO') matchMcap = (mcap < 50000000);
+        else if (mcapFilter === 'SMALL') matchMcap = (mcap >= 50000000 && mcap < 300000000);
+        else if (mcapFilter === 'MID') matchMcap = (mcap >= 300000000 && mcap < 2000000000);
+        else if (mcapFilter === 'LARGE') matchMcap = (mcap >= 2000000000);
+
+        const vol = item.components?.volume24h || 0;
+        const matchVol = vol >= volFilter;
+
+        const isDeadWeight = item.components?.riskComponents?.isDeadWeight || false;
+        const matchDead = !deadWeightFilter || !isDeadWeight;
+
+        return matchSearch && matchCat && matchAge && matchMcap && matchVol && matchDead;
       });
 
       filtered.sort((a, b) => {
         let valA = a[sortColumn];
         let valB = b[sortColumn];
-        if (sortColumn === 'price_usd') {
-          valA = a.components?.priceUsd || 0;
-          valB = b.components?.priceUsd || 0;
-        } else if (sortColumn === 'price_change_24h') {
-          valA = a.components?.priceChange24h || 0;
-          valB = b.components?.priceChange24h || 0;
-        }
+        if (sortColumn === 'price_usd') { valA = a.components?.priceUsd || 0; valB = b.components?.priceUsd || 0; }
+        else if (sortColumn === 'price_change_24h') { valA = a.components?.priceChange24h || 0; valB = b.components?.priceChange24h || 0; }
         return sortDirection === 'desc' ? (valB - valA) : (valA - valB);
       });
 
       const tbody = document.getElementById('screener-tbody');
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-slate-500">Nenhum ativo encontrado para os filtros selecionados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-slate-500">Nenhum ativo encontrado para os filtros selecionados.</td></tr>`;
         return;
       }
 
@@ -529,9 +597,10 @@
         const price = item.components?.priceUsd ? (item.components.priceUsd < 1 ? `$${item.components.priceUsd.toFixed(4)}` : `$${item.components.priceUsd.toFixed(2)}`) : '$0.00';
         const p24h = item.components?.priceChange24h || 0;
         const p24hClass = p24h >= 0 ? 'text-emerald-400' : 'text-rose-400';
-        const volAccel = item.components?.volumeAccelVs7d || 1.0;
-        const delta24h = item.delta_24h || 0;
-        const deltaClass = delta24h > 0 ? 'text-emerald-400' : (delta24h < 0 ? 'text-rose-400' : 'text-slate-400');
+        const volAccel = item.components?.volumeAccelVs7d != null ? `${item.components.volumeAccelVs7d}x` : 'N/A';
+        const rsiVal = item.components?.rsi != null ? item.components.rsi : 'N/A';
+        const ageDays = item.components?.riskComponents?.ageDays || item.coins?.age_days || 60;
+        const athDist = item.components?.riskComponents?.athChangePct != null ? `${item.components.riskComponents.athChangePct}%` : 'N/A';
 
         let badgeClass = 'badge-neutral';
         let badgeLabel = item.signal_category;
@@ -566,10 +635,10 @@
             </td>
             <td class="py-3 px-4 text-right font-bold text-slate-200">${price}</td>
             <td class="py-3 px-4 text-right font-bold ${p24hClass}">${p24h > 0 ? '+' : ''}${p24h.toFixed(2)}%</td>
-            <td class="py-3 px-4 text-right font-bold text-cyan-300">${volAccel}x</td>
-            <td class="py-3 px-4 text-center font-bold ${deltaClass}">
-              ${delta24h > 0 ? '+' : ''}${delta24h}
-            </td>
+            <td class="py-3 px-4 text-right font-bold text-amber-300">${rsiVal}</td>
+            <td class="py-3 px-4 text-right font-bold text-cyan-300">${volAccel}</td>
+            <td class="py-3 px-4 text-center text-xs text-slate-300">~${ageDays}d</td>
+            <td class="py-3 px-4 text-center text-xs text-slate-400">${athDist}</td>
             <td class="py-3 px-4 text-center">
               <button onclick="openModal('${item.coin_id}')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-darkborder">
                 <i class="fa-solid fa-circle-info"></i>
@@ -611,25 +680,12 @@
       document.getElementById('modal-final-score').textContent = item.final_score;
       document.getElementById('modal-opp-score').textContent = item.opportunity_score;
       document.getElementById('modal-risk-score').textContent = item.risk_score;
-      
-      const rsiVal = item.components?.rsi;
-      document.getElementById('modal-rsi').textContent = rsiVal != null ? rsiVal : 'Coletando histórico...';
-      document.getElementById('modal-vol-accel').textContent = `${item.components?.volumeAccelVs7d || 1.0}x`;
-      document.getElementById('modal-fdv-ratio').textContent = item.components?.riskComponents?.fdvRatio ? `${item.components.riskComponents.fdvRatio}x` : '1.0x';
-      document.getElementById('modal-breakout').textContent = item.components?.isBreakout30d ? '✅ Sim' : '❌ Não';
-
-      const warmupBadge = document.getElementById('modal-warmup-badge');
-      if (item.components?.isWarmedUp === false) {
-        warmupBadge.classList.remove('hidden');
-      } else {
-        warmupBadge.classList.add('hidden');
-      }
-
-      document.getElementById('modal-delta-6h').textContent = `${item.delta_6h > 0 ? '+' : ''}${item.delta_6h || 0}`;
-      document.getElementById('modal-delta-12h').textContent = `${item.delta_12h > 0 ? '+' : ''}${item.delta_12h || 0}`;
-      document.getElementById('modal-delta-24h').textContent = `${item.delta_24h > 0 ? '+' : ''}${item.delta_24h || 0}`;
-
+      document.getElementById('modal-rsi').textContent = item.components?.rsi != null ? item.components.rsi : 'N/A';
+      document.getElementById('modal-age').textContent = `~${item.components?.riskComponents?.ageDays || item.coins?.age_days || 60} dias`;
+      document.getElementById('modal-ath').textContent = item.components?.riskComponents?.athChangePct != null ? `${item.components.riskComponents.athChangePct}%` : 'N/A';
+      document.getElementById('modal-deadweight').textContent = item.components?.riskComponents?.isDeadWeight ? '⚠️ Sim (+25 risco)' : '✅ Não';
       document.getElementById('modal-cg-link').href = `https://www.coingecko.com/en/coins/${coinId}`;
+
       document.getElementById('coin-modal').classList.remove('hidden');
       document.getElementById('coin-modal').classList.add('flex');
     }
@@ -644,11 +700,11 @@
       icon.classList.add('fa-spin');
       try {
         await fetch('/api/scanner/trigger', { method: 'POST' });
-        setTimeout(loadData, 3000);
+        setTimeout(loadData, 4000);
       } catch (e) {
         console.error(e);
       } finally {
-        setTimeout(() => icon.classList.remove('fa-spin'), 1500);
+        setTimeout(() => icon.classList.remove('fa-spin'), 2000);
       }
     }
 
@@ -663,34 +719,21 @@
           document.getElementById('btc-class-badge').textContent = d.classificacao || 'Neutro';
           document.getElementById('btc-cond-count').textContent = `${d.obrigatorias_ativas || 0} / 4`;
           document.getElementById('btc-window').textContent = `${d.janela_estimada_inicio || '2026-06'} a ${d.janela_estimada_fim || '2026-10'}`;
-          document.getElementById('btc-days-halving').textContent = `${d.dias_desde_halving || 0} dias desde halving (${d.dias_ate_fundo_estimado || 0} até fundo est.)`;
-
+          document.getElementById('btc-days-halving').textContent = `${d.dias_desde_halving || 0} dias desde halving`;
           document.getElementById('btc-mvrv').textContent = d.mvrv_zscore != null ? Number(d.mvrv_zscore).toFixed(2) : '--';
           document.getElementById('btc-fng').textContent = d.fear_greed != null ? `${d.fear_greed}/100` : '--';
           document.getElementById('btc-realized').textContent = d.realized_price ? `$${Number(d.realized_price).toLocaleString()}` : '--';
           document.getElementById('btc-rsi').textContent = d.rsi != null ? Number(d.rsi).toFixed(1) : '--';
-          document.getElementById('btc-nupl').textContent = d.nupl != null ? Number(d.nupl).toFixed(2) : '--';
-          document.getElementById('btc-puell').textContent = d.puell_multiple != null ? Number(d.puell_multiple).toFixed(2) : '--';
-          document.getElementById('btc-sma200').textContent = d.sma200 ? `$${Number(d.sma200).toLocaleString()}` : '--';
-          document.getElementById('btc-reserve-risk').textContent = d.reserve_risk != null ? Number(d.reserve_risk).toFixed(4) : '--';
         }
-      } catch (err) {
-        console.error('Erro ao carregar dados do BTC:', err);
-      }
+      } catch (err) {}
     }
 
     async function runBacktestTrigger() {
-      const icon = document.getElementById('backtest-icon');
-      icon.classList.add('fa-spin');
       try {
         const res = await fetch('/api/scanner/backtest/recalculate', { method: 'POST' });
         const json = await res.json();
         if (json.success) loadBacktest();
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setTimeout(() => icon.classList.remove('fa-spin'), 1000);
-      }
+      } catch (err) {}
     }
 
     async function loadBacktest() {
@@ -713,9 +756,7 @@
             </tr>
           `).join('');
         }
-      } catch (err) {
-        console.error(err);
-      }
+      } catch (err) {}
     }
 
     async function loadAlerts() {
@@ -724,10 +765,6 @@
         const json = await res.json();
         if (json.success && json.data) {
           const list = document.getElementById('alerts-list');
-          if (json.data.length === 0) {
-            list.innerHTML = '<div class="p-6 text-center text-slate-500 text-xs">Nenhum alerta recente registrado.</div>';
-            return;
-          }
           list.innerHTML = json.data.map(a => `
             <div class="p-4 bg-slate-900/50 hover:bg-slate-900 flex justify-between items-start gap-4">
               <div>
@@ -738,12 +775,9 @@
             </div>
           `).join('');
         }
-      } catch (err) {
-        console.error(err);
-      }
+      } catch (err) {}
     }
 
-    // Inicialização
     loadData();
     setInterval(loadData, 30000);
   </script>
