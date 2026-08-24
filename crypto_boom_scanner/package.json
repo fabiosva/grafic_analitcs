@@ -1,0 +1,35 @@
+{
+  "name": "crypto-boom-scanner",
+  "version": "2.0.0",
+  "description": "Real-time Crypto Boom Scanner - Momentum, Volume, Breakout and Risk Screener",
+  "main": "scheduler.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node scheduler.js",
+    "collect": "node scheduler.js --now",
+    "dashboard": "node dashboard.js",
+    "backtest": "node backtest.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.0",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "crypto",
+    "coingecko",
+    "trading",
+    "screener",
+    "momentum",
+    "breakout",
+    "backtest"
+  ],
+  "author": "Antigravity",
+  "license": "ISC"
+}

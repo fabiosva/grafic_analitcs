@@ -1,98 +1,8 @@
 -- ==============================================================================
--- 1. PAINEL FUNDO BTC (ORIGINAL)
+-- CRYPTO BOOM SCANNER (v2) - SUPABASE / POSTGRESQL SCHEMA
 -- ==============================================================================
-CREATE TABLE IF NOT EXISTS bottom_indicators (
-    data DATE PRIMARY KEY,
-    preco NUMERIC,
-    mvrv_zscore NUMERIC,
-    nupl NUMERIC,
-    sopr NUMERIC,
-    realized_price NUMERIC,
-    puell_multiple NUMERIC,
-    reserve_risk NUMERIC,
-    rhodl_ratio NUMERIC,
-    fear_greed INTEGER,
-    rsi NUMERIC,
-    sma50 NUMERIC,
-    sma200 NUMERIC,
-    stoch_rsi_k NUMERIC,
-    stoch_rsi_d NUMERIC,
-    cvdd NUMERIC,
-    balanced_price NUMERIC,
-    terminal_price NUMERIC,
-    lth_realized_price NUMERIC,
-    hashribbons TEXT,
-    gm_sma350 NUMERIC,
-    gm_x16 NUMERIC,
-    gm_x2 NUMERIC,
-    gm_x2618 NUMERIC,
-    open_interest_usd NUMERIC,
-    funding_rate NUMERIC,
-    sth_mvrv NUMERIC,
-    sth_mvrv_momentum NUMERIC,
-    vdd_multiple NUMERIC,
-    aviv NUMERIC,
-    sth_lth_ratio NUMERIC,
-    sth_realized_price NUMERIC,
-    percent_lth_in_profit NUMERIC,
-    lth_sopr NUMERIC,
-    sth_sopr NUMERIC,
-    short_term_hodler_supply_btc NUMERIC,
-    supply_current NUMERIC,
-    ultimo_halving DATE,
-    dias_desde_halving INTEGER,
-    fundo_estimado DATE,
-    janela_estimada_inicio DATE,
-    janela_estimada_fim DATE,
-    dias_ate_fundo_estimado INTEGER,
-    condicoes JSONB,
-    obrigatorias_ativas INTEGER,
-    score_final NUMERIC,
-    classificacao TEXT,
-    atualizado_em TIMESTAMPTZ
-);
 
-ALTER TABLE bottom_indicators ENABLE ROW LEVEL SECURITY;
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Leitura publica') THEN
-        CREATE POLICY "Leitura publica" ON bottom_indicators FOR SELECT USING (true);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Insercao via service key') THEN
-        CREATE POLICY "Insercao via service key" ON bottom_indicators FOR ALL USING (true) WITH CHECK (true);
-    END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS previsoes (
-    data_previsao DATE NOT NULL,
-    prazo_dias INTEGER NOT NULL,
-    data_alvo DATE NOT NULL,
-    direcao_prevista TEXT,
-    prob_alta NUMERIC,
-    preco_no_dia NUMERIC,
-    preco_alvo_estimado NUMERIC,
-    n_amostras INTEGER,
-    preco_real NUMERIC,
-    direcao_correta BOOLEAN,
-    alvo_batido BOOLEAN,
-    variacao_real_pct NUMERIC,
-    avaliado_em TIMESTAMPTZ,
-    criado_em TIMESTAMPTZ,
-    PRIMARY KEY (data_previsao, prazo_dias)
-);
-
-ALTER TABLE previsoes ENABLE ROW LEVEL SECURITY;
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Leitura publica previsoes') THEN
-        CREATE POLICY "Leitura publica previsoes" ON previsoes FOR SELECT USING (true);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Insercao previsoes') THEN
-        CREATE POLICY "Insercao previsoes" ON previsoes FOR ALL USING (true) WITH CHECK (true);
-    END IF;
-END $$;
-
--- ==============================================================================
--- 2. CRYPTO BOOM SCANNER (v2)
--- ==============================================================================
+-- 1. Metadata de Moedas
 CREATE TABLE IF NOT EXISTS coins (
     id TEXT PRIMARY KEY,
     symbol TEXT NOT NULL,
@@ -102,6 +12,7 @@ CREATE TABLE IF NOT EXISTS coins (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 2. Snapshots Históricos das Moedas (Coletados a cada hora)
 CREATE TABLE IF NOT EXISTS coin_snapshots (
     id BIGSERIAL PRIMARY KEY,
     coin_id TEXT REFERENCES coins(id) ON DELETE CASCADE,
@@ -125,13 +36,14 @@ CREATE TABLE IF NOT EXISTS coin_snapshots (
     UNIQUE(coin_id, snapshot_time)
 );
 
+-- 3. Scores de Oportunidade e Risco por Moeda
 CREATE TABLE IF NOT EXISTS coin_scores (
     id BIGSERIAL PRIMARY KEY,
     coin_id TEXT REFERENCES coins(id) ON DELETE CASCADE,
     opportunity_score NUMERIC NOT NULL,
     risk_score NUMERIC NOT NULL,
     final_score NUMERIC NOT NULL,
-    signal_category TEXT NOT NULL,
+    signal_category TEXT NOT NULL, -- 'BOOM_WATCH', 'MOMENTUM', 'ACCUMULATION', 'HIGH_RISK', 'EXTENDED', 'NEUTRAL'
     delta_6h NUMERIC,
     delta_12h NUMERIC,
     delta_24h NUMERIC,
@@ -139,15 +51,17 @@ CREATE TABLE IF NOT EXISTS coin_scores (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 4. Eventos Notáveis (Cruzar Thresholds, Entrada no Top 10)
 CREATE TABLE IF NOT EXISTS score_events (
     id BIGSERIAL PRIMARY KEY,
     coin_id TEXT REFERENCES coins(id) ON DELETE CASCADE,
-    event_type TEXT NOT NULL,
+    event_type TEXT NOT NULL, -- 'top10_enter', 'threshold_cross', 'boom_watch_trigger', 'accumulation_trigger'
     score NUMERIC,
     details JSONB,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 5. Histórico de Alertas Disparados (Telegram / Webhooks)
 CREATE TABLE IF NOT EXISTS alerts (
     id BIGSERIAL PRIMARY KEY,
     coin_id TEXT REFERENCES coins(id) ON DELETE CASCADE,
@@ -158,6 +72,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     channel TEXT DEFAULT 'telegram'
 );
 
+-- 6. Resultados de Backtesting
 CREATE TABLE IF NOT EXISTS backtest_results (
     id BIGSERIAL PRIMARY KEY,
     min_score INT NOT NULL,
@@ -176,7 +91,9 @@ CREATE TABLE IF NOT EXISTS backtest_results (
     calculated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Índices de Alta Performance
+-- ==============================================================================
+-- ÍNDICES DE ALTA PERFORMANCE
+-- ==============================================================================
 CREATE INDEX IF NOT EXISTS idx_snapshots_coin_time ON coin_snapshots(coin_id, snapshot_time DESC);
 CREATE INDEX IF NOT EXISTS idx_snapshots_time ON coin_snapshots(snapshot_time DESC);
 CREATE INDEX IF NOT EXISTS idx_coin_scores_coin_created ON coin_scores(coin_id, created_at DESC);
@@ -185,7 +102,9 @@ CREATE INDEX IF NOT EXISTS idx_coin_scores_final ON coin_scores(final_score DESC
 CREATE INDEX IF NOT EXISTS idx_score_events_created ON score_events(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_alerts_coin_sent ON alerts(coin_id, sent_at DESC);
 
--- Políticas RLS
+-- ==============================================================================
+-- ROW LEVEL SECURITY (RLS) & POLÍTICAS
+-- ==============================================================================
 ALTER TABLE coins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coin_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coin_scores ENABLE ROW LEVEL SECURITY;
