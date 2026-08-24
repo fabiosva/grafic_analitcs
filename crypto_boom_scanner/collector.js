@@ -14,7 +14,6 @@ function isStablecoin(coin) {
   if (config.filters.excludedSymbols.includes(symbol)) return true;
   if (config.filters.excludedSymbols.includes(id)) return true;
 
-  // Padrões de stablecoin comuns
   if (symbol.endsWith('usd') || symbol.startsWith('usd') || symbol.includes('eur') || symbol.includes('brl')) {
     if (['usd', 'usdt', 'usdc', 'fdusd', 'busd', 'pyusd', 'usde', 'tusd', 'usdd', 'usdp'].some(s => symbol.includes(s))) {
       return true;
@@ -22,14 +21,14 @@ function isStablecoin(coin) {
   }
 
   if (name.includes('wrapped') || name.includes('liquid staked') || name.includes('peg') || name.includes('yield-bearing')) {
-    if (['steth', 'weth', 'wbtc', 'wsteth', 'cbeth'].includes(symbol)) return true;
+    if (['steth', 'weth', 'wbtc', 'wsteth', 'cbeth', 'ezeth', 'weeth'].includes(symbol)) return true;
   }
 
   return false;
 }
 
 /**
- * Coleta os mercados da CoinGecko com suporte a paginação e rate limit
+ * Coleta os mercados da CoinGecko com sparkline=true (168 pontos horários por moeda)
  */
 async function fetchMarketsPage(page = 1, perPage = 250) {
   const url = `${config.collector.apiUrl}/coins/markets`;
@@ -38,7 +37,7 @@ async function fetchMarketsPage(page = 1, perPage = 250) {
     order: 'market_cap_desc',
     per_page: perPage,
     page: page,
-    sparkline: false,
+    sparkline: true, // Retorna 168 pontos de preço histórico dos últimos 7 dias
     price_change_percentage: '1h,24h,7d,30d',
   };
 
@@ -73,10 +72,10 @@ async function fetchMarketsPage(page = 1, perPage = 250) {
 }
 
 /**
- * Executa o ciclo completo de coleta do Top 300-500
+ * Executa o ciclo completo de coleta do Top 300-500 com sparklines históricas
  */
 async function collectTopCoins() {
-  console.log(`[Collector] Iniciando coleta de mercado CoinGecko às ${new Date().toISOString()}...`);
+  console.log(`[Collector] Iniciando coleta de mercado CoinGecko (com sparkline 7d) às ${new Date().toISOString()}...`);
   const snapshotTime = new Date().toISOString();
   const totalTarget = config.collector.totalCoins;
   const perPage = config.collector.perPage;
@@ -104,7 +103,6 @@ async function collectTopCoins() {
   for (const item of rawCoins) {
     if (!item || !item.id || !item.symbol) continue;
 
-    // Filtros de exclusão
     if (isStablecoin(item)) continue;
 
     const marketCap = parseFloat(item.market_cap) || 0;
@@ -115,16 +113,30 @@ async function collectTopCoins() {
     if (volume24h < config.filters.minVolume24hUsd) continue;
     if (priceUsd <= 0) continue;
 
-    const fdv = parseFloat(item.fully_diluted_valuation) || (marketCap > 0 ? marketCap : null);
     const circulatingSupply = parseFloat(item.circulating_supply) || null;
     const totalSupply = parseFloat(item.total_supply) || null;
     const maxSupply = parseFloat(item.max_supply) || null;
 
-    // Variações percentuais
+    // Cálculo exato de FDV
+    let fdv = parseFloat(item.fully_diluted_valuation) || null;
+    if (!fdv && priceUsd > 0) {
+      const targetSupply = maxSupply || totalSupply;
+      if (targetSupply && targetSupply > 0) {
+        fdv = priceUsd * targetSupply;
+      } else if (marketCap > 0) {
+        fdv = marketCap;
+      }
+    }
+
     const p1h = parseFloat(item.price_change_percentage_1h_in_currency) || 0;
     const p24h = parseFloat(item.price_change_percentage_24h_in_currency || item.price_change_percentage_24h) || 0;
     const p7d = parseFloat(item.price_change_percentage_7d_in_currency) || 0;
     const p30d = parseFloat(item.price_change_percentage_30d_in_currency) || 0;
+
+    // Extrair série horária dos últimos 7 dias (168 pontos)
+    const sparklinePrices = Array.isArray(item.sparkline_in_7d?.price) 
+      ? item.sparkline_in_7d.price.filter(p => p != null && !isNaN(p) && p > 0)
+      : [];
 
     const coinData = {
       id: item.id,
@@ -152,6 +164,7 @@ async function collectTopCoins() {
       ath: parseFloat(item.ath) || null,
       ath_change_percentage: parseFloat(item.ath_change_percentage) || null,
       snapshot_time: snapshotTime,
+      sparkline_prices: sparklinePrices,
     };
 
     filteredCoins.push({ meta: coinData, snapshot: snapshotData, raw: item });
@@ -159,11 +172,10 @@ async function collectTopCoins() {
     snapshots.push(snapshotData);
   }
 
-  console.log(`[Collector] Moedas filtradas após remoção de stablecoins e baixa liquidez: ${filteredCoins.length}`);
+  console.log(`[Collector] Moedas válidas com sparkline histórica: ${filteredCoins.length}`);
 
-  // Persistir metadados e snapshots
   await db.upsertCoins(coinsMeta);
-  await db.insertSnapshots(snapshots);
+  await db.insertSnapshots(snapshots.map(({ sparkline_prices, ...s }) => s));
 
   return {
     snapshotTime,

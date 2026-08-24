@@ -2,7 +2,6 @@ const config = require('./config');
 
 /**
  * Calcula Média Móvel Exponencial (EMA)
- * Retorna null se não houver pontos suficientes para estabilização
  */
 function calculateEMA(prices, period) {
   if (!prices || prices.length < period) return null;
@@ -17,7 +16,6 @@ function calculateEMA(prices, period) {
 
 /**
  * Calcula RSI (14 períodos)
- * Retorna null se não houver histórico mínimo de 14 snapshots
  */
 function calculateRSI(prices, period = 14) {
   if (!prices || prices.length < period + 1) return null;
@@ -51,7 +49,6 @@ function calculateRSI(prices, period = 14) {
 
 /**
  * Analisa os indicadores técnicos e métricas de volume de uma moeda
- * Trata rigorosamente períodos de aquecimento sem inventar valores
  */
 function computeIndicators(currentSnapshot, historySnapshots = []) {
   const price = currentSnapshot.price_usd;
@@ -61,57 +58,76 @@ function computeIndicators(currentSnapshot, historySnapshots = []) {
   const p7d = currentSnapshot.price_change_7d || 0;
   const p30d = currentSnapshot.price_change_30d || 0;
 
-  // Extrair preços históricos
-  const prices = historySnapshots.map(s => s.price_usd).filter(p => p > 0);
-  prices.push(price);
+  // 1. Obter série de preços históricos
+  // Prioriza sparkline horária de 7 dias (168 pontos) da CoinGecko
+  let prices = [];
+  if (Array.isArray(currentSnapshot.sparkline_prices) && currentSnapshot.sparkline_prices.length >= 15) {
+    prices = [...currentSnapshot.sparkline_prices];
+    // Garante que o preço atual seja o último ponto
+    if (prices[prices.length - 1] !== price) {
+      prices.push(price);
+    }
+  } else if (historySnapshots.length > 0) {
+    prices = historySnapshots.map(s => s.price_usd).filter(p => p > 0);
+    prices.push(price);
+  } else {
+    prices = [price];
+  }
 
-  // 1. EMA 20 e EMA 50 (null se não houver amostras suficientes)
+  // 2. EMA 20 e EMA 50
   const ema20 = calculateEMA(prices, 20);
   const ema50 = calculateEMA(prices, 50);
 
-  // 2. RSI 14 (null se não houver pelo menos 15 snapshots horários)
+  // 3. RSI 14
   const rsi = calculateRSI(prices, 14);
 
-  // 3. Média de volume histórico 7d e aceleração
-  let avgVolume7d = vol24h;
+  // 4. Aceleração de Volume
+  // Se não houver histórico de snapshots anteriores no banco, retorna null (N/A explícito)
+  let volumeAccelVsPrev = null;
+  let volumeAccelVs7d = null;
+
   if (historySnapshots.length > 0) {
+    const prevVol = historySnapshots[historySnapshots.length - 1].volume_24h;
+    if (prevVol && prevVol > 0) {
+      volumeAccelVsPrev = vol24h / prevVol;
+    }
+
     const histVols = historySnapshots.map(s => s.volume_24h).filter(v => v > 0).slice(-168);
-    avgVolume7d = histVols.length > 0 ? (histVols.reduce((a, b) => a + b, 0) / histVols.length) : vol24h;
+    if (histVols.length >= 1) {
+      const avg7d = histVols.reduce((a, b) => a + b, 0) / histVols.length;
+      if (avg7d > 0) {
+        volumeAccelVs7d = vol24h / avg7d;
+      }
+    }
   }
 
-  const prevVol = historySnapshots.length > 0 
-    ? historySnapshots[historySnapshots.length - 1].volume_24h 
-    : vol24h;
-
-  const volumeAccelVsPrev = prevVol > 0 ? vol24h / prevVol : 1.0;
-  const volumeAccelVs7d = avgVolume7d > 0 ? vol24h / avgVolume7d : 1.0;
-
-  // 4. Máxima de 30 dias e Breakout
-  let maxPrice30d = price;
+  // 5. Máxima de 7d/30d e Breakout
+  let maxPrice = price;
   if (prices.length > 1) {
-    const window30d = prices.slice(-720);
-    maxPrice30d = Math.max(...window30d);
+    maxPrice = Math.max(...prices);
   } else if (p30d < 0) {
-    maxPrice30d = price / (1 + p30d / 100);
+    maxPrice = price / (1 + p30d / 100);
   }
 
-  const isBreakout30d = (price >= maxPrice30d * 0.985);
-  const isVolume2xAvg = (volumeAccelVs7d >= 2.0);
+  const isBreakout = (price >= maxPrice * 0.985);
+  const isVolume2xAvg = (volumeAccelVs7d !== null && volumeAccelVs7d >= 2.0);
   const isEma20Above50 = (ema20 != null && ema50 != null) ? (ema20 > ema50) : null;
   const isPriceAboveEma20 = (ema20 != null) ? (price > ema20) : null;
   const isPriceAboveEma50 = (ema50 != null) ? (price > ema50) : null;
   const isMomentum7dPos = (p7d > 0);
 
-  // 5. Breakout Score adaptativo
+  // 6. Breakout Score Adaptativo
   let earnedBreakout = 0;
   let maxPossibleBreakout = 0;
   const rules = config.breakoutRules;
 
-  earnedBreakout += isBreakout30d ? rules.breakout30dHigh : 0;
+  earnedBreakout += isBreakout ? rules.breakout30dHigh : 0;
   maxPossibleBreakout += rules.breakout30dHigh;
 
-  earnedBreakout += isVolume2xAvg ? rules.volumeOver2xAvg7d : 0;
-  maxPossibleBreakout += rules.volumeOver2xAvg7d;
+  if (volumeAccelVs7d !== null) {
+    earnedBreakout += isVolume2xAvg ? rules.volumeOver2xAvg7d : 0;
+    maxPossibleBreakout += rules.volumeOver2xAvg7d;
+  }
 
   earnedBreakout += isMomentum7dPos ? rules.momentum7dPositive : 0;
   maxPossibleBreakout += rules.momentum7dPositive;
@@ -137,20 +153,19 @@ function computeIndicators(currentSnapshot, historySnapshots = []) {
     ? Math.max(0, Math.min(100, (earnedBreakout / maxPossibleBreakout) * 100))
     : 50;
 
-  const isExhaustionDivergence = (p24h > 4.0 && volumeAccelVs7d < 0.8);
+  const isExhaustionDivergence = (volumeAccelVs7d !== null && p24h > 4.0 && volumeAccelVs7d < 0.8);
   const isExtended = (p24h >= config.signals.extended24hThresholdPct);
-  const isWarmedUp = (prices.length >= 50);
+  const isWarmedUp = (prices.length >= 20);
 
   return {
     price,
     ema20,
     ema50,
     rsi,
-    avgVolume7d,
     volumeAccelVsPrev,
     volumeAccelVs7d,
-    maxPrice30d,
-    isBreakout30d,
+    maxPrice,
+    isBreakout,
     isVolume2xAvg,
     isEma20Above50,
     isPriceAboveEma20,

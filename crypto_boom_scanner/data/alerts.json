@@ -1,0 +1,18 @@
+[
+  {
+    "coin_id": "cash-cat",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] CASHCAT (Cash Cat)</b>\n📊 <b>Final Score:</b> 73.3/100\n🎯 <b>Opportunity:</b> 73.3 | 🛡️ <b>Risco:</b> 0\n💰 <b>Preço:</b> $0,163 (+44.52% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.04x | 📈 <b>RSI:</b> 68.2\n🔗 <a href=\"https://www.coingecko.com/en/coins/cash-cat\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-24T12:38:45.923Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "non-playable-coin",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] NPC (Non-Playable Coin)</b>\n📊 <b>Final Score:</b> 74.6/100\n🎯 <b>Opportunity:</b> 74.6 | 🛡️ <b>Risco:</b> 0\n💰 <b>Preço:</b> $0,013 (+33.18% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.06x | 📈 <b>RSI:</b> 69.9\n🔗 <a href=\"https://www.coingecko.com/en/coins/non-playable-coin\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-24T12:38:45.917Z",
+    "notified": false,
+    "channel": "telegram"
+  }
+]

@@ -15,7 +15,7 @@ function normalizePct(pct, minRange = -20, maxRange = 50) {
  * Normaliza aceleração de volume para escala 0 a 100
  */
 function normalizeVolumeAccel(ratio) {
-  if (ratio == null || isNaN(ratio)) return 50;
+  if (ratio == null || isNaN(ratio)) return 50; // valor neutro quando N/A
   if (ratio <= 0.5) return 20;
   if (ratio <= 1.0) return 20 + ((ratio - 0.5) / 0.5) * 30;
   if (ratio <= 2.0) return 50 + ((ratio - 1.0) / 1.0) * 30;
@@ -101,34 +101,34 @@ function calculateScore(currentSnapshot, historySnapshots = [], previousScores =
   let finalScore = roundedOpportunity - riskPenalty;
   finalScore = parseFloat(Math.max(0, Math.min(100, finalScore)).toFixed(1));
 
-  // 9. Deltas Históricos de Score
-  let delta6h = 0;
-  let delta12h = 0;
-  let delta24h = 0;
+  // 9. Deltas Históricos de Score (null se não houver histórico de 6h/12h/24h)
+  let delta6h = null;
+  let delta12h = null;
+  let delta24h = null;
 
   if (previousScores && previousScores.length > 0) {
     const nowMs = new Date(currentSnapshot.snapshot_time || Date.now()).getTime();
 
     const score6hItem = previousScores.find(s => {
       const diffHours = (nowMs - new Date(s.created_at).getTime()) / (1000 * 60 * 60);
-      return diffHours >= 5.5 && diffHours <= 7.5;
+      return diffHours >= 4.5 && diffHours <= 8.5;
     });
     if (score6hItem) delta6h = parseFloat((finalScore - score6hItem.final_score).toFixed(1));
 
     const score12hItem = previousScores.find(s => {
       const diffHours = (nowMs - new Date(s.created_at).getTime()) / (1000 * 60 * 60);
-      return diffHours >= 11.0 && diffHours <= 13.5;
+      return diffHours >= 10.0 && diffHours <= 15.0;
     });
     if (score12hItem) delta12h = parseFloat((finalScore - score12hItem.final_score).toFixed(1));
 
     const score24hItem = previousScores.find(s => {
       const diffHours = (nowMs - new Date(s.created_at).getTime()) / (1000 * 60 * 60);
-      return diffHours >= 22.0 && diffHours <= 26.0;
+      return diffHours >= 20.0 && diffHours <= 28.0;
     });
     if (score24hItem) delta24h = parseFloat((finalScore - score24hItem.final_score).toFixed(1));
   }
 
-  // 10. Classificação de Sinais (Ordem de especificidade)
+  // 10. Classificação de Sinais
   let signalCategory = 'NEUTRAL';
   const mcap = currentSnapshot.market_cap || 0;
 
@@ -137,11 +137,11 @@ function calculateScore(currentSnapshot, historySnapshots = [], previousScores =
   } else if (riskScore >= config.signals.highRiskThreshold && roundedOpportunity >= 60) {
     signalCategory = 'HIGH_RISK';
   } else if (
+    tech.volumeAccelVs7d !== null &&
     tech.volumeAccelVs7d >= config.signals.accumulation.minVolumeAccel7d &&
     p24h >= config.signals.accumulation.minPriceChange24h &&
     p24h <= config.signals.accumulation.maxPriceChange24h
   ) {
-    // Acumulação: Volume forte com preço calmo/lateral
     signalCategory = 'ACCUMULATION';
   } else if (
     roundedOpportunity >= config.signals.boomWatch.minOpportunity &&
@@ -161,7 +161,11 @@ function calculateScore(currentSnapshot, historySnapshots = [], previousScores =
   const components = {
     priceUsd: currentSnapshot.price_usd,
     marketCap: mcap,
+    fdv: currentSnapshot.fdv || mcap,
     volume24h: currentSnapshot.volume_24h,
+    circulatingSupply: currentSnapshot.circulating_supply,
+    totalSupply: currentSnapshot.total_supply,
+    maxSupply: currentSnapshot.max_supply,
     priceChange1h: p1h,
     priceChange24h: p24h,
     priceChange7d: p7d,
@@ -169,9 +173,9 @@ function calculateScore(currentSnapshot, historySnapshots = [], previousScores =
     rsi: tech.rsi !== null ? parseFloat(tech.rsi.toFixed(1)) : null,
     ema20: tech.ema20 !== null ? parseFloat(tech.ema20.toFixed(4)) : null,
     ema50: tech.ema50 !== null ? parseFloat(tech.ema50.toFixed(4)) : null,
-    volumeAccelVs7d: parseFloat(tech.volumeAccelVs7d.toFixed(2)),
-    volumeAccelVsPrev: parseFloat(tech.volumeAccelVsPrev.toFixed(2)),
-    isBreakout30d: tech.isBreakout30d,
+    volumeAccelVs7d: tech.volumeAccelVs7d !== null ? parseFloat(tech.volumeAccelVs7d.toFixed(2)) : null,
+    volumeAccelVsPrev: tech.volumeAccelVsPrev !== null ? parseFloat(tech.volumeAccelVsPrev.toFixed(2)) : null,
+    isBreakout: tech.isBreakout,
     isWarmedUp: tech.isWarmedUp,
     historyLength: tech.historyLength,
     momentumSubScore: parseFloat(momentumScore.toFixed(1)),
