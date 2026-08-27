@@ -121,7 +121,7 @@ def load_backtest_data(supabase_url, supabase_key):
 
 
 def render_crypto_scanner_tab(supabase_url, supabase_key):
-    """Renderiza a interface v3 com Análise de Mercado e Recomendações Automáticas"""
+    """Renderiza a interface v3 de triagem estatística do mercado."""
 
     # Top Header & Botão de Atualização
     h_col1, h_col2 = st.columns([3, 1])
@@ -212,7 +212,7 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
         regime_color=regime_color,
     ), unsafe_allow_html=True)
 
-    # Cards dos Top 5 Recomendados pelo Motor
+    # Cards dos cinco sinais mais fortes para investigação
     st.markdown("### Sinais para investigar — não são recomendações de compra")
     top_recs = [r for r in (recs or []) if r.get("verdict") in {"STRONG_WATCH", "WATCH"}][:5]
     
@@ -243,7 +243,7 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
                 </div>
                 """, unsafe_allow_html=True)
     else:
-        st.info("Nenhuma recomendação processada. Clique em 'Atualizar Cotações Agora' para gerar os vereditos.")
+        st.info("Nenhum sinal processado. Clique em 'Atualizar Cotações Agora' para gerar a triagem.")
 
     st.markdown("<hr style='border-color:#1f2d47; margin:20px 0;'>", unsafe_allow_html=True)
 
@@ -348,7 +348,7 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
 
     # Raio-X Detalhado
     st.markdown("<hr style='border-color:#1f2d47; margin:25px 0;'>", unsafe_allow_html=True)
-    st.subheader("🔍 Raio-X, Idade Estrutural & Veredito do Ativo")
+    st.subheader("🔍 Raio-X, idade estrutural e classificação do ativo")
 
     coin_options = [f"{row['symbol']} - {row['name']} (Score: {row['final_score']})" for _, row in filtered_df.iterrows()]
     if coin_options:
@@ -360,10 +360,10 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
             risk_comp = comp.get("riskComponents") or {}
 
             d_col1, d_col2, d_col3, d_col4 = st.columns(4)
-            d_col1.metric("Final Score", f"{coin_row['final_score']}/100", f"Sinal: {coin_row['signal_category']}")
-            d_col2.metric("Opportunity Score", f"{coin_row['opportunity_score']}/100", "Potencial de Alta")
+            d_col1.metric("Nota final", f"{coin_row['final_score']}/100", f"Faixa: {coin_row['signal_category']}")
+            d_col2.metric("Força observada", f"{coin_row['opportunity_score']}/100", "Não é previsão de alta")
             risk_val = coin_row['risk_score']
-            d_col3.metric("Risk Score", f"{risk_val}/100", f"-{risk_val * 0.5:.1f} pts no score final")
+            d_col3.metric("Nota de risco", f"{risk_val}/100", f"-{risk_val * 0.5:.1f} pts na nota final")
             d_col4.metric("Preço Atual", f"${coin_row['price_usd']:,.4f}" if coin_row['price_usd'] < 1 else f"${coin_row['price_usd']:,.2f}", f"{coin_row['price_change_24h']:+.2f}% 24h")
 
             st.markdown("#### Métricas Estruturais & Idade")
@@ -378,7 +378,7 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
             m4.info(f"**Dead Weight Risk**: {dead_w_str}")
 
     # Backtesting
-    with st.expander("📊 Validação Estatística de Sinais & Recomendações (Backtesting)"):
+    with st.expander("📊 Validação estatística dos sinais (backtesting)"):
         df_backtest = load_backtest_data(supabase_url, supabase_key)
         valid_backtest = df_backtest.loc[pd.to_numeric(df_backtest.get("sample_size"), errors="coerce").fillna(0) > 0] if not df_backtest.empty else df_backtest
         if not valid_backtest.empty:
