@@ -52,14 +52,18 @@ async function executeScanCycle() {
     // 2. Calcular Score e Indicadores
     for (const item of coins) {
       const coinId = item.meta.id;
-      const historySnapshots = snapshotsByCoin.get(coinId) || [];
+      // O coletor persiste o snapshot atual antes do score. Exclui esse ponto
+      // para não comparar volume/preço de agora com ele mesmo.
+      const currentTime = new Date(item.snapshot.snapshot_time).getTime();
+      const historySnapshots = (snapshotsByCoin.get(coinId) || [])
+        .filter(s => new Date(s.snapshot_time).getTime() < currentTime);
       const previousScores = await db.getHistoricalScoresForCoin(coinId, 48);
 
       const scoreObj = scorer.calculateScore(
         item.snapshot,
         historySnapshots,
         previousScores,
-        { ageDays: item.meta.age_days }
+        { ageDays: item.meta.age_days, ageSource: item.meta.age_source }
       );
 
       calculatedScores.push({

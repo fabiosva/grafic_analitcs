@@ -4,7 +4,9 @@ Inclui Análise Automática do Mercado, Vereditos do Sistema (STRONG_WATCH),
 Filtro de Idade, Dead Weight Risk e Filtros Avançados estilo CoinMarketCap
 """
 from pathlib import Path
+import html
 import json
+import re
 import subprocess
 import requests
 import pandas as pd
@@ -126,16 +128,16 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
     with h_col1:
         st.markdown("""
         <div style="margin-bottom:12px;">
-            <span style="color:#10b981; font-weight:800; font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase;">● TRIAGEM ESTATÍSTICA & MOTOR DE RECOMENDAÇÃO (v3)</span>
-            <h2 style="margin:2px 0; color:#fff; font-size:1.8rem; font-weight:800;">🚀 Crypto Boom Scanner & Screener</h2>
-            <p style="color:#94a3b8; margin:0; font-size:0.85rem;">Identificação pré-pump baseada em Momentum, Volume, Breakout, Filtro de Idade e Dead Weight Risk.</p>
+            <span style="color:#10b981; font-weight:800; font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase;">TRIAGEM EXPERIMENTAL DE ALTCOINS</span>
+            <h2 style="margin:2px 0; color:#fff; font-size:1.8rem; font-weight:800;">Crypto Boom Scanner</h2>
+            <p style="color:#94a3b8; margin:0; font-size:0.85rem;">Ordena ativos por momentum, volume, rompimento e risco. Não prevê pumps nem recomenda compras.</p>
         </div>
         """, unsafe_allow_html=True)
     with h_col2:
-        if st.button("🔄 Atualizar Cotações Agora", use_container_width=True, help="Executa varredura com sparklines na CoinGecko"):
+        if st.button("🔄 Atualizar cotações", width="stretch", help="Executa uma nova varredura na CoinGecko"):
             with st.spinner("Buscando preços e gerando recomendações..."):
                 try:
-                    subprocess.run(["node", str(ROOT / "crypto_boom_scanner" / "scheduler.js"), "--now"], check=True, timeout=40)
+                    subprocess.run(["node", str(ROOT / "crypto_boom_scanner" / "scheduler.js"), "--now"], check=True, timeout=180)
                     st.cache_data.clear()
                     st.success("Atualizado com sucesso!")
                     st.rerun()
@@ -147,6 +149,16 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
     if df_scores.empty:
         st.warning("⚠️ Nenhum dado de mercado encontrado. Clique em 'Atualizar Cotações Agora' acima.")
         return
+
+    latest_score_at = pd.to_datetime(df_scores.get("created_at"), errors="coerce", utc=True).max()
+    scanner_age_hours = None
+    if pd.notna(latest_score_at):
+        scanner_age_hours = (pd.Timestamp.now(tz="UTC") - latest_score_at).total_seconds() / 3600
+        if scanner_age_hours > 6:
+            st.warning(
+                f"Dados do scanner com {scanner_age_hours:.0f} horas de atraso. "
+                "As cotações e os sinais abaixo não representam o mercado agora."
+            )
 
     # Extrair e normalizar campos
     for idx, row in df_scores.iterrows():
@@ -174,12 +186,17 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
     # =========================================================================
     # SEÇÃO 1: ANÁLISE AUTOMÁTICA DO MERCADO & TOP RECOMENDAÇÕES (ADENDO v3)
     # =========================================================================
+    summary_text = html.escape(str(summary.get("summaryText") if summary else "Análise gerada por regras heurísticas."))
+    regime_title = html.escape(str(summary.get("regime") if summary else "SEM CLASSIFICAÇÃO"))
+    regime_color = str(summary.get("regimeColor") if summary else "#94a3b8")
+    if not re.fullmatch(r"#[0-9a-fA-F]{6}", regime_color):
+        regime_color = "#94a3b8"
     st.markdown("""
     <div style="background:linear-gradient(135deg,#111e38,#0b1326); padding:18px 22px; border-radius:16px; border:1px solid #1e3a8a; margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
-                <span style="color:#38bdf8; font-weight:800; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.1em;">🧠 INTELIGÊNCIA DE MERCADO</span>
-                <h3 style="margin:2px 0; color:#fff; font-size:1.35rem; font-weight:800;">Análise Automática do Ciclo</h3>
+                <span style="color:#38bdf8; font-weight:800; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.1em;">TRIAGEM HEURÍSTICA</span>
+                <h3 style="margin:2px 0; color:#fff; font-size:1.35rem; font-weight:800;">Leitura automática do mercado</h3>
                 <p style="color:#cbd5e1; font-size:0.85rem; margin:0;">{summary_text}</p>
             </div>
             <div style="text-align:right;">
@@ -190,14 +207,14 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
         </div>
     </div>
     """.format(
-        summary_text=summary.get("summaryText") if summary else "Análise do ciclo gerada pelo motor de regras.",
-        regime_title=summary.get("regime") if summary else "MERCADO ATIVO",
-        regime_color=summary.get("regimeColor") if summary else "#22c55e",
+        summary_text=summary_text,
+        regime_title=regime_title,
+        regime_color=regime_color,
     ), unsafe_allow_html=True)
 
     # Cards dos Top 5 Recomendados pelo Motor
-    st.markdown("### 🏆 Top 5 Recomendações do Sistema (Buy Signal Engine)")
-    top_recs = recs[:5] if recs else []
+    st.markdown("### Sinais para investigar — não são recomendações de compra")
+    top_recs = [r for r in (recs or []) if r.get("verdict") in {"STRONG_WATCH", "WATCH"}][:5]
     
     if top_recs:
         rec_cols = st.columns(min(len(top_recs), 5))
@@ -206,22 +223,22 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
                 verdict = r.get("verdict", "WATCH")
                 v_color = "#22c55e" if verdict == "STRONG_WATCH" else ("#38bdf8" if verdict == "WATCH" else ("#f59e0b" if verdict == "TOO_EXTENDED" else "#ef4444"))
                 v_badge = "🚀 STRONG WATCH" if verdict == "STRONG_WATCH" else ("👀 WATCH" if verdict == "WATCH" else ("⚠️ ESTENDIDO" if verdict == "TOO_EXTENDED" else "⛔ EVITAR"))
-                conf = r.get("confidence", 80)
+                rule_strength = r.get("confidence", 0)
                 price = r.get("price_at_recommendation", 0)
                 p_str = f"${price:,.4f}" if price < 1 else f"${price:,.2f}"
 
                 st.markdown(f"""
                 <div style="background:#0f172a; padding:14px; border-radius:14px; border:1px solid {v_color}55; min-height:220px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:900; font-size:1.1rem; color:#fff;">{r.get('symbol')}</span>
+                        <span style="font-weight:900; font-size:1.1rem; color:#fff;">{html.escape(str(r.get('symbol') or '—'))}</span>
                         <span style="font-size:0.7rem; font-weight:800; color:{v_color}; background:{v_color}22; padding:3px 8px; border-radius:8px;">{v_badge}</span>
                     </div>
-                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:2px;">{r.get('name', '')[:14]}</div>
+                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:2px;">{html.escape(str(r.get('name') or '')[:18])}</div>
                     <div style="font-size:1.2rem; font-weight:900; color:#e2e8f0; margin:6px 0 2px 0;">{p_str}</div>
-                    <div style="font-size:0.75rem; color:#10b981; font-weight:700;">Score: {r.get('final_score', 0)}/100 · Confiança: {conf}%</div>
+                    <div style="font-size:0.75rem; color:#10b981; font-weight:700;">Score: {r.get('final_score', 0)}/100 · Força da regra: {rule_strength}%</div>
                     <hr style="border-color:#1e293b; margin:8px 0;">
                     <div style="font-size:0.72rem; color:#cbd5e1; line-height:1.35;">
-                        {'<br>'.join(['• ' + item for item in r.get('reasoning', [])[:2]])}
+                        {'<br>'.join(['• ' + html.escape(str(item)) for item in r.get('reasoning', [])[:2]])}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -327,7 +344,7 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
     display_df["Supply Float"] = filtered_df["float_pct"].apply(lambda x: f"{x:.1f}%")
     display_df["Market Cap"] = filtered_df["market_cap"].apply(lambda x: f"${x:,.0f}" if x > 0 else "N/A")
 
-    st.dataframe(display_df, use_container_width=True, height=480, hide_index=True)
+    st.dataframe(display_df, width="stretch", height=480, hide_index=True)
 
     # Raio-X Detalhado
     st.markdown("<hr style='border-color:#1f2d47; margin:25px 0;'>", unsafe_allow_html=True)
@@ -352,7 +369,10 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
             st.markdown("#### Métricas Estruturais & Idade")
             m1, m2, m3, m4 = st.columns(4)
             m1.info(f"**RSI (14)**: {comp.get('rsi') if comp.get('rsi') is not None else 'N/A'}")
-            m2.info(f"**Idade do Token**: ~{risk_comp.get('ageDays', 60)} dias ({risk_comp.get('ageCategory', 'DISCOVERY')})")
+            age_value = risk_comp.get('ageDays')
+            age_source = risk_comp.get('ageSource', 'unknown')
+            age_text = f"pelo menos {age_value} dias" if age_value is not None and age_source != 'confirmed' else (f"{age_value} dias" if age_value is not None else "não confirmada")
+            m2.info(f"**Idade do Token**: {age_text} ({risk_comp.get('ageCategory', 'UNKNOWN')})")
             m3.info(f"**Distância do Topo (ATH)**: {risk_comp.get('athChangePct', -50.0)}%")
             dead_w_str = "⚠️ SIM (+25 risco)" if risk_comp.get('isDeadWeight') else "✅ NÃO (Livre)"
             m4.info(f"**Dead Weight Risk**: {dead_w_str}")
@@ -360,7 +380,8 @@ def render_crypto_scanner_tab(supabase_url, supabase_key):
     # Backtesting
     with st.expander("📊 Validação Estatística de Sinais & Recomendações (Backtesting)"):
         df_backtest = load_backtest_data(supabase_url, supabase_key)
-        if not df_backtest.empty:
-            st.dataframe(df_backtest, use_container_width=True)
+        valid_backtest = df_backtest.loc[pd.to_numeric(df_backtest.get("sample_size"), errors="coerce").fillna(0) > 0] if not df_backtest.empty else df_backtest
+        if not valid_backtest.empty:
+            st.dataframe(valid_backtest, width="stretch")
         else:
-            st.info("O histórico de snapshots está sendo construído para apurar win rates e retornos em 7d/14d/30d.")
+            st.info("Ainda não há nenhuma amostra vencida. O painel não mostrará taxa de acerto até existir histórico real suficiente.")

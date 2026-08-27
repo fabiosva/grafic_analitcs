@@ -28,9 +28,13 @@ const discoverySnapshot = {
   volume_24h: 15000000,
   ath_change_percentage: -15.0,
 };
-const discoveryRisk = risk.computeRisk(discoverySnapshot, { ageDays: 45 }); // Fase de descoberta
+const discoveryRisk = risk.computeRisk(discoverySnapshot, { ageDays: 45, ageSource: 'confirmed' });
 assert.strictEqual(discoveryRisk.components.ageCategory, 'DISCOVERY');
 assert.strictEqual(discoveryRisk.riskScore, 0, 'Ativo na fase de descoberta (45d) com baixo FDV deve ter risco 0');
+
+const unknownAgeRisk = risk.computeRisk(discoverySnapshot, { ageDays: 45, ageSource: 'lower_bound' });
+assert.strictEqual(unknownAgeRisk.components.ageCategory, 'UNKNOWN');
+assert.ok(unknownAgeRisk.riskScore >= 10, 'Idade apenas estimada não pode receber bônus de descoberta');
 
 const deadWeightSnapshot = {
   market_cap: 30000000,
@@ -38,7 +42,7 @@ const deadWeightSnapshot = {
   volume_24h: 500000, // giro 1.6%
   ath_change_percentage: -92.0, // -92% do topo
 };
-const deadWeightRisk = risk.computeRisk(deadWeightSnapshot, { ageDays: 1100 }); // > 2 anos
+const deadWeightRisk = risk.computeRisk(deadWeightSnapshot, { ageDays: 1100, ageSource: 'confirmed' });
 assert.strictEqual(deadWeightRisk.components.isDeadWeight, true, 'Deve identificar Dead Weight Risk');
 assert.ok(deadWeightRisk.riskScore >= 50, 'Dead Weight com baixa liquidez deve ter risco alto');
 console.log('✅ Teste Risco & Dead Weight passou com sucesso.');
@@ -62,7 +66,7 @@ const boomSnapshot = {
 const historySnapshots = [
   { price_usd: 1.80, volume_24h: 4000000, market_cap_rank: 210, snapshot_time: new Date(Date.now() - 3600000).toISOString() }
 ];
-const scoreResult = scorer.calculateScore(boomSnapshot, historySnapshots, [], { ageDays: 60 });
+const scoreResult = scorer.calculateScore(boomSnapshot, historySnapshots, [], { ageDays: 60, ageSource: 'confirmed' });
 console.log('Score calculado:', {
   opportunity: scoreResult.opportunity_score,
   risk: scoreResult.risk_score,

@@ -75,26 +75,29 @@ function computeRisk(snapshot, extraData = {}) {
   components.liquidityPenalty = liquidityPenalty;
 
   // 3. Idade Estrutural do Token (Adendo v3)
-  const ageDays = extraData.ageDays != null ? extraData.ageDays : 60;
-  let agePenalty = 0;
-  let ageCategory = 'DISCOVERY'; // 'NEW', 'DISCOVERY', 'MATURING', 'VETERAN'
+  const ageDays = extraData.ageDays != null ? extraData.ageDays : null;
+  const ageSource = extraData.ageSource || 'unknown';
+  const ageConfirmed = ageSource === 'confirmed';
+  let agePenalty = 10;
+  let ageCategory = 'UNKNOWN';
 
-  if (ageDays < 30) {
+  if (ageConfirmed && ageDays < 30) {
     ageCategory = 'NEW';
     agePenalty = 25; // Risco de rug/falta de histórico
-  } else if (ageDays <= 180) {
+  } else if (ageConfirmed && ageDays <= 180) {
     ageCategory = 'DISCOVERY';
     agePenalty = 0; // Fase de descoberta (maior valorização orgânica)
-  } else if (ageDays <= 730) {
+  } else if (ageConfirmed && ageDays <= 730) {
     ageCategory = 'MATURING';
     agePenalty = 10; // Holders começando a acumular lucro
-  } else {
+  } else if (ageConfirmed) {
     ageCategory = 'VETERAN';
     agePenalty = 15; // Moeda antiga
   }
 
   riskScore += agePenalty;
   components.ageDays = ageDays;
+  components.ageSource = ageSource;
   components.ageCategory = ageCategory;
   components.agePenalty = agePenalty;
 
@@ -102,7 +105,7 @@ function computeRisk(snapshot, extraData = {}) {
   let deadWeightRisk = 0;
   let isDeadWeight = false;
 
-  if (ageDays > 730) { // > 2 anos
+  if (ageDays != null && ageDays > 730) { // > 2 anos comprovados pelo menos
     // Se preço estiver muito abaixo da máxima histórica (> 80% de queda) e sem volume expressivo
     if (athChangePct <= -80.0 && liquidityRatio < 0.10) {
       deadWeightRisk = 25; // Holders presos esperando saída no zero a zero

@@ -1,251 +1,87 @@
 [
   {
-    "coin_id": "cash-cat",
-    "symbol": "CASHCAT",
-    "name": "Cash Cat",
-    "image_url": "https://coin-images.coingecko.com/coins/images/102174280/large/cashcat-logo.jpg?1782922765",
-    "verdict": "STRONG_WATCH",
-    "confidence": 82,
+    "coin_id": "beam-2",
+    "symbol": "BEAM",
+    "name": "Beam",
+    "image_url": "https://coin-images.coingecko.com/coins/images/32417/large/cgicon.png?1747892021",
+    "verdict": "WATCH",
+    "confidence": 80,
     "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 69.6).",
-      "🌱 Token com ~53 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 69.6 (sem sobrecompra extrema)."
+      "🔥 Momentum 24h positivo (+35.0%) com estrutura altista.",
+      "⚡ Injeção de volume: 15.4x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1.14x com 88% do supply já em circulação.",
+      "📈 RSI equilibrado em 73.7 (sem sobrecompra extrema)."
     ],
     "risk_flags": [],
-    "price_at_recommendation": 0.166336,
-    "price_change_24h": 46.97456,
-    "opportunity_score": 73.6,
-    "risk_score": 0,
-    "final_score": 73.6,
-    "created_at": "2026-08-24T13:05:11.976Z"
+    "price_at_recommendation": 0.00195264,
+    "price_change_24h": 35.00484,
+    "opportunity_score": 82.3,
+    "risk_score": 10,
+    "final_score": 77.3,
+    "created_at": "2026-08-27T11:02:29.271Z"
   },
   {
-    "coin_id": "dog-go-to-the-moon-rune",
-    "symbol": "DOG",
-    "name": "Dog (Bitcoin)",
-    "image_url": "https://coin-images.coingecko.com/coins/images/37352/large/DOGGOTOTHEMOON.png?1714096969",
-    "verdict": "STRONG_WATCH",
-    "confidence": 78,
+    "coin_id": "non-playable-coin",
+    "symbol": "NPC",
+    "name": "Non-Playable Coin",
+    "image_url": "https://coin-images.coingecko.com/coins/images/31193/large/NPC_200x200.png?1696530021",
+    "verdict": "WATCH",
+    "confidence": 80,
     "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 77.3).",
-      "🌱 Token com ~60 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação."
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 74.2).",
+      "⚡ Injeção de volume: 1.6x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 74.2 (sem sobrecompra extrema)."
     ],
     "risk_flags": [],
-    "price_at_recommendation": 0.00121152,
-    "price_change_24h": 58.61286,
-    "opportunity_score": 74.4,
+    "price_at_recommendation": 0.0176858,
+    "price_change_24h": 31.44625,
+    "opportunity_score": 81.7,
     "risk_score": 15,
-    "final_score": 66.9,
-    "created_at": "2026-08-24T13:05:11.976Z"
+    "final_score": 74.2,
+    "created_at": "2026-08-27T11:02:29.272Z"
   },
   {
-    "coin_id": "pons",
-    "symbol": "PONS",
-    "name": "Pons",
-    "image_url": "https://coin-images.coingecko.com/coins/images/102174571/large/jhitvkisdq8fhxvimdkpcw7y3dx5.?1784093932",
-    "verdict": "TOO_EXTENDED",
-    "confidence": 90,
-    "reasoning": [
-      "🔥 Momentum 24h positivo (+80.1%) com estrutura altista.",
-      "🌱 Token com ~38 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 64.3 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [
-      "⚠️ Preço esticado (+80.1% em 24h) — risco alto de compra no topo de euforia."
-    ],
-    "price_at_recommendation": 0.068777,
-    "price_change_24h": 80.09155,
-    "opportunity_score": 65.5,
-    "risk_score": 0,
-    "final_score": 65.5,
-    "created_at": "2026-08-24T13:05:11.976Z"
-  },
-  {
-    "coin_id": "ether-fi",
-    "symbol": "ETHFI",
-    "name": "Ether.fi",
-    "image_url": "https://coin-images.coingecko.com/coins/images/35958/large/etherfi.jpeg?1710254562",
+    "coin_id": "convex-finance",
+    "symbol": "CVX",
+    "name": "Convex Finance",
+    "image_url": "https://coin-images.coingecko.com/coins/images/15585/large/convex.png?1696515221",
     "verdict": "WATCH",
-    "confidence": 76,
+    "confidence": 80,
     "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 61).",
-      "🌱 Token com ~79 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 61 (sem sobrecompra extrema)."
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 66.1).",
+      "⚡ Injeção de volume: 2.1x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1.07x com 93% do supply já em circulação.",
+      "📈 RSI equilibrado em 66.1 (sem sobrecompra extrema)."
     ],
     "risk_flags": [],
-    "price_at_recommendation": 0.642252,
-    "price_change_24h": 0.79717,
-    "opportunity_score": 60.5,
-    "risk_score": 0,
-    "final_score": 60.5,
-    "created_at": "2026-08-24T13:05:11.976Z"
-  },
-  {
-    "coin_id": "elrond-erd-2",
-    "symbol": "EGLD",
-    "name": "MultiversX",
-    "image_url": "https://coin-images.coingecko.com/coins/images/12335/large/egld-token-logo.png?1696512162",
-    "verdict": "WATCH",
-    "confidence": 75,
-    "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 65.1).",
-      "🌱 Token com ~59 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 65.1 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 3.63,
-    "price_change_24h": 4.787,
-    "opportunity_score": 61.4,
-    "risk_score": 5,
-    "final_score": 58.9,
-    "created_at": "2026-08-24T13:05:11.976Z"
-  },
-  {
-    "coin_id": "purr-2",
-    "symbol": "PURR",
-    "name": "Purr",
-    "image_url": "https://coin-images.coingecko.com/coins/images/37125/large/PURR_CG.png?1713368828",
-    "verdict": "WATCH",
-    "confidence": 74,
-    "reasoning": [
-      "🔥 Momentum 24h positivo (+19.0%) com estrutura altista.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 60.3 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.146649,
-    "price_change_24h": 18.98149,
-    "opportunity_score": 62.9,
+    "price_at_recommendation": 2.46,
+    "price_change_24h": 9.57819,
+    "opportunity_score": 78.6,
     "risk_score": 10,
-    "final_score": 57.9,
-    "created_at": "2026-08-24T13:05:11.976Z"
+    "final_score": 73.6,
+    "created_at": "2026-08-27T11:02:29.272Z"
   },
   {
-    "coin_id": "derive",
-    "symbol": "DRV",
-    "name": "Derive",
-    "image_url": "https://coin-images.coingecko.com/coins/images/52889/large/Token_Logo.png?1734601695",
+    "coin_id": "vechain",
+    "symbol": "VET",
+    "name": "VeChain",
+    "image_url": "https://coin-images.coingecko.com/coins/images/1167/large/VET.png?1742383283",
     "verdict": "WATCH",
-    "confidence": 72,
+    "confidence": 80,
     "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 81.8)."
-    ],
-    "risk_flags": [
-      "⚠️ RSI em 81.8 (sobrecompra extrema)."
-    ],
-    "price_at_recommendation": 0.152925,
-    "price_change_24h": 30.00431,
-    "opportunity_score": 67.1,
-    "risk_score": 20,
-    "final_score": 57.1,
-    "created_at": "2026-08-24T13:05:11.976Z"
-  },
-  {
-    "coin_id": "polygon-ecosystem-token",
-    "symbol": "POL",
-    "name": "POL (ex-MATIC)",
-    "image_url": "https://coin-images.coingecko.com/coins/images/32440/large/pol.png?1759114181",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🔥 Momentum 24h positivo (+8.5%) com estrutura altista.",
-      "🌱 Token com ~54 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
+      "🔥 Momentum 24h positivo (+18.8%) com estrutura altista.",
+      "⚡ Injeção de volume: 4.5x acima da média móvel dos últimos 7 dias.",
       "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 68.9 (sem sobrecompra extrema)."
+      "📈 RSI equilibrado em 66.9 (sem sobrecompra extrema)."
     ],
     "risk_flags": [],
-    "price_at_recommendation": 0.116096,
-    "price_change_24h": 8.46748,
-    "opportunity_score": 57,
-    "risk_score": 0,
-    "final_score": 57,
-    "created_at": "2026-08-24T13:05:11.976Z"
-  },
-  {
-    "coin_id": "superfarm",
-    "symbol": "SUPER",
-    "name": "SuperVerse",
-    "image_url": "https://coin-images.coingecko.com/coins/images/14040/large/SV-Logo-200x200.png?1706880312",
-    "verdict": "WATCH",
-    "confidence": 71,
-    "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 84.6)."
-    ],
-    "risk_flags": [
-      "⚠️ RSI em 84.6 (sobrecompra extrema)."
-    ],
-    "price_at_recommendation": 0.129171,
-    "price_change_24h": 30.20447,
-    "opportunity_score": 68.4,
-    "risk_score": 25,
-    "final_score": 55.9,
-    "created_at": "2026-08-24T13:05:11.976Z"
-  },
-  {
-    "coin_id": "funfair",
-    "symbol": "FUN",
-    "name": "FUNToken",
-    "image_url": "https://coin-images.coingecko.com/coins/images/761/large/FUN.png?1696501914",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 57.4).",
-      "🌱 Token com ~123 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 57.4 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.00507996,
-    "price_change_24h": 1.72756,
-    "opportunity_score": 55.7,
-    "risk_score": 0,
-    "final_score": 55.7,
-    "created_at": "2026-08-24T13:05:11.976Z"
-  },
-  {
-    "coin_id": "pudgy-penguins",
-    "symbol": "PENGU",
-    "name": "Pudgy Penguins",
-    "image_url": "https://coin-images.coingecko.com/coins/images/52622/large/PUDGY_PENGUINS_PENGU_PFP.png?1733809110",
-    "verdict": "WATCH",
-    "confidence": 72,
-    "reasoning": [
-      "🔥 Momentum 24h positivo (+14.7%) com estrutura altista.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1.22x com 82% do supply já em circulação.",
-      "📈 RSI equilibrado em 59.8 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.00967915,
-    "price_change_24h": 14.68791,
-    "opportunity_score": 60.6,
-    "risk_score": 10,
-    "final_score": 55.6,
-    "created_at": "2026-08-24T13:05:11.976Z"
-  },
-  {
-    "coin_id": "melania-meme",
-    "symbol": "MELANIA",
-    "name": "Melania Meme",
-    "image_url": "https://coin-images.coingecko.com/coins/images/53775/large/melania-meme.png?1737329885",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🌱 Token com ~79 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 56.8 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.109213,
-    "price_change_24h": -1.28596,
-    "opportunity_score": 55.6,
-    "risk_score": 0,
-    "final_score": 55.6,
-    "created_at": "2026-08-24T13:05:11.976Z"
+    "price_at_recommendation": 0.00672718,
+    "price_change_24h": 18.81447,
+    "opportunity_score": 79.5,
+    "risk_score": 15,
+    "final_score": 72,
+    "created_at": "2026-08-27T11:02:29.272Z"
   },
   {
     "coin_id": "mina-protocol",
@@ -253,120 +89,404 @@
     "name": "Mina Protocol",
     "image_url": "https://coin-images.coingecko.com/coins/images/15628/large/JM4_vQ34_400x400.png?1696515261",
     "verdict": "WATCH",
-    "confidence": 60,
+    "confidence": 80,
     "reasoning": [
-      "🌱 Token com ~55 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 69.9).",
+      "⚡ Injeção de volume: 1.9x acima da média móvel dos últimos 7 dias.",
       "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 56.2 (sem sobrecompra extrema)."
+      "📈 RSI equilibrado em 69.9 (sem sobrecompra extrema)."
     ],
     "risk_flags": [],
-    "price_at_recommendation": 0.05856,
-    "price_change_24h": 3.79319,
-    "opportunity_score": 55.5,
-    "risk_score": 0,
-    "final_score": 55.5,
-    "created_at": "2026-08-24T13:05:11.976Z"
+    "price_at_recommendation": 0.067156,
+    "price_change_24h": 6.48393,
+    "opportunity_score": 75.6,
+    "risk_score": 10,
+    "final_score": 70.6,
+    "created_at": "2026-08-27T11:02:29.272Z"
   },
   {
-    "coin_id": "non-playable-coin",
-    "symbol": "NPC",
-    "name": "Non-Playable Coin",
-    "image_url": "https://coin-images.coingecko.com/coins/images/31193/large/NPC_200x200.png?1696530021",
+    "coin_id": "gas",
+    "symbol": "GAS",
+    "name": "Gas",
+    "image_url": "https://coin-images.coingecko.com/coins/images/858/large/GAS_512_512.png?1696501992",
+    "verdict": "WATCH",
+    "confidence": 80,
+    "reasoning": [
+      "🔥 Momentum 24h positivo (+8.4%) com estrutura altista.",
+      "⚡ Injeção de volume: 3.9x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 53 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 1.34,
+    "price_change_24h": 8.4116,
+    "opportunity_score": 73.2,
+    "risk_score": 10,
+    "final_score": 68.2,
+    "created_at": "2026-08-27T11:02:29.272Z"
+  },
+  {
+    "coin_id": "spx6900",
+    "symbol": "SPX",
+    "name": "SPX6900",
+    "image_url": "https://coin-images.coingecko.com/coins/images/31401/large/centeredcoin_%281%29.png?1737048493",
+    "verdict": "WATCH",
+    "confidence": 79,
+    "reasoning": [
+      "🔥 Momentum 24h positivo (+14.3%) com estrutura altista.",
+      "⚡ Injeção de volume: 2.1x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 60.7 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.609084,
+    "price_change_24h": 14.27919,
+    "opportunity_score": 75.5,
+    "risk_score": 15,
+    "final_score": 68,
+    "created_at": "2026-08-27T11:02:29.272Z"
+  },
+  {
+    "coin_id": "ontology",
+    "symbol": "ONT",
+    "name": "Ontology",
+    "image_url": "https://coin-images.coingecko.com/coins/images/3447/large/ONT.png?1696504138",
+    "verdict": "WATCH",
+    "confidence": 78,
+    "reasoning": [
+      "🔥 Momentum 24h positivo (+14.7%) com estrutura altista.",
+      "⚡ Injeção de volume: 4.6x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 47.3 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.058838,
+    "price_change_24h": 14.74992,
+    "opportunity_score": 70.5,
+    "risk_score": 10,
+    "final_score": 65.5,
+    "created_at": "2026-08-27T11:02:29.272Z"
+  },
+  {
+    "coin_id": "polymesh",
+    "symbol": "POLYX",
+    "name": "Polymesh",
+    "image_url": "https://coin-images.coingecko.com/coins/images/23496/large/Polymesh-symbol.png?1696522706",
+    "verdict": "WATCH",
+    "confidence": 77,
+    "reasoning": [
+      "⚡ Injeção de volume: 7.1x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 59.9 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.03511523,
+    "price_change_24h": 3.16597,
+    "opportunity_score": 68.6,
+    "risk_score": 10,
+    "final_score": 63.6,
+    "created_at": "2026-08-27T11:02:29.272Z"
+  },
+  {
+    "coin_id": "affine",
+    "symbol": "SN120",
+    "name": "affine",
+    "image_url": "https://coin-images.coingecko.com/coins/images/69755/large/affine-logo.jpeg?1759487699",
     "verdict": "AVOID",
     "confidence": 85,
     "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 69.8).",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 69.8 (sem sobrecompra extrema)."
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 79.6).",
+      "⚡ Injeção de volume: 2.0x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação."
     ],
     "risk_flags": [
-      "⚠️ Dead Weight Risk: moeda antiga com -80.7% de queda do ATH — forte pressão de holders querendo sair no zero a zero."
+      "⚠️ Giro de liquidez baixo (0.5% de volume/MCap) — risco de derrapagem (slippage)."
     ],
-    "price_at_recommendation": 0.01275655,
-    "price_change_24h": 30.15754,
-    "opportunity_score": 73.9,
-    "risk_score": 40,
-    "final_score": 53.9,
-    "created_at": "2026-08-24T13:05:11.977Z"
+    "price_at_recommendation": 13.68,
+    "price_change_24h": 9.49609,
+    "opportunity_score": 79.7,
+    "risk_score": 35,
+    "final_score": 62.2,
+    "created_at": "2026-08-27T11:02:29.272Z"
   },
   {
-    "coin_id": "prometeus",
-    "symbol": "PROM",
-    "name": "Prom",
-    "image_url": "https://coin-images.coingecko.com/coins/images/8825/large/Ticker.png?1696508978",
+    "coin_id": "kamino",
+    "symbol": "KMNO",
+    "name": "Kamino",
+    "image_url": "https://coin-images.coingecko.com/coins/images/35801/large/Kamino_200x200.png?1767944671",
+    "verdict": "WATCH",
+    "confidence": 75,
+    "reasoning": [
+      "🔥 Momentum 24h positivo (+16.8%) com estrutura altista.",
+      "⚡ Injeção de volume: 2.3x acima da média móvel dos últimos 7 dias.",
+      "📈 RSI equilibrado em 72 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.02790319,
+    "price_change_24h": 16.83482,
+    "opportunity_score": 72,
+    "risk_score": 20,
+    "final_score": 62,
+    "created_at": "2026-08-27T11:02:29.272Z"
+  },
+  {
+    "coin_id": "solana",
+    "symbol": "SOL",
+    "name": "Solana",
+    "image_url": "https://coin-images.coingecko.com/coins/images/4128/large/solana.png?1718769756",
+    "verdict": "WATCH",
+    "confidence": 75,
+    "reasoning": [
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 71).",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1.08x com 92% do supply já em circulação.",
+      "📈 RSI equilibrado em 71 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 104.07,
+    "price_change_24h": 6.75214,
+    "opportunity_score": 64.7,
+    "risk_score": 10,
+    "final_score": 59.7,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "cash-cat",
+    "symbol": "CASHCAT",
+    "name": "Cash Cat",
+    "image_url": "https://coin-images.coingecko.com/coins/images/102174280/large/cashcat-logo.jpg?1782922765",
+    "verdict": "WATCH",
+    "confidence": 75,
+    "reasoning": [
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 52.8 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.22691,
+    "price_change_24h": 2.47209,
+    "opportunity_score": 64.7,
+    "risk_score": 10,
+    "final_score": 59.7,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "meta-2-2",
+    "symbol": "META",
+    "name": "MetaDAO",
+    "image_url": "https://coin-images.coingecko.com/coins/images/68320/large/META.png?1755335883",
+    "verdict": "WATCH",
+    "confidence": 75,
+    "reasoning": [
+      "⚡ Injeção de volume: 2.6x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 47.6 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 6.66,
+    "price_change_24h": 2.04679,
+    "opportunity_score": 64.7,
+    "risk_score": 10,
+    "final_score": 59.7,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "targon",
+    "symbol": "SN4",
+    "name": "Targon",
+    "image_url": "https://coin-images.coingecko.com/coins/images/66342/large/sn4.png?1749239249",
+    "verdict": "AVOID",
+    "confidence": 85,
+    "reasoning": [
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 77.7).",
+      "⚡ Injeção de volume: 2.3x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação."
+    ],
+    "risk_flags": [
+      "⚠️ Giro de liquidez baixo (0.8% de volume/MCap) — risco de derrapagem (slippage)."
+    ],
+    "price_at_recommendation": 14.38,
+    "price_change_24h": 9.44572,
+    "opportunity_score": 77.1,
+    "risk_score": 35,
+    "final_score": 59.6,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "the-black-bull",
+    "symbol": "ANSEM",
+    "name": "The Black Bull",
+    "image_url": "https://coin-images.coingecko.com/coins/images/102174035/large/IMG_9497.jpeg?1782005339",
+    "verdict": "WATCH",
+    "confidence": 73,
+    "reasoning": [
+      "🔥 Momentum 24h positivo (+22.1%) com estrutura altista.",
+      "⚡ Injeção de volume: 1.9x acima da média móvel dos últimos 7 dias.",
+      "📈 RSI equilibrado em 59.3 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.341957,
+    "price_change_24h": 22.14786,
+    "opportunity_score": 68.1,
+    "risk_score": 20,
+    "final_score": 58.1,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "astar",
+    "symbol": "ASTR",
+    "name": "Astar",
+    "image_url": "https://coin-images.coingecko.com/coins/images/22617/large/astr.png?1696521933",
+    "verdict": "WATCH",
+    "confidence": 74,
+    "reasoning": [
+      "⚡ Injeção de volume: 2.7x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 51.8 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.00556941,
+    "price_change_24h": 1.97847,
+    "opportunity_score": 62.7,
+    "risk_score": 10,
+    "final_score": 57.7,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "bittensor",
+    "symbol": "TAO",
+    "name": "Bittensor",
+    "image_url": "https://coin-images.coingecko.com/coins/images/28452/large/ARUsPeNQ_400x400.jpeg?1696527447",
     "verdict": "WATCH",
     "confidence": 71,
     "reasoning": [
-      "🔥 Momentum 24h positivo (+19.6%) com estrutura altista.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1.05x com 95% do supply já em circulação.",
-      "📈 RSI equilibrado em 62.4 (sem sobrecompra extrema)."
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 77.2)."
     ],
     "risk_flags": [],
-    "price_at_recommendation": 3.61,
-    "price_change_24h": 19.58036,
-    "opportunity_score": 61.2,
-    "risk_score": 15,
-    "final_score": 53.7,
-    "created_at": "2026-08-24T13:05:11.977Z"
+    "price_at_recommendation": 254.61,
+    "price_change_24h": 8.07437,
+    "opportunity_score": 65.4,
+    "risk_score": 20,
+    "final_score": 55.4,
+    "created_at": "2026-08-27T11:02:29.273Z"
   },
   {
-    "coin_id": "injective-protocol",
-    "symbol": "INJ",
-    "name": "Injective",
-    "image_url": "https://coin-images.coingecko.com/coins/images/12882/large/Other_200x200.png?1738782212",
+    "coin_id": "meme-horse",
+    "symbol": "MHORSE",
+    "name": "MEME HORSE",
+    "image_url": "https://coin-images.coingecko.com/coins/images/102171984/large/1000322552.png?1770837497",
+    "verdict": "AVOID",
+    "confidence": 85,
+    "reasoning": [
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 54.9).",
+      "⚡ Injeção de volume: 4.3x acima da média móvel dos últimos 7 dias.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 54.9 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [
+      "⚠️ Giro de liquidez baixo (1.3% de volume/MCap) — risco de derrapagem (slippage)."
+    ],
+    "price_at_recommendation": 0.060554,
+    "price_change_24h": 0.03257,
+    "opportunity_score": 71.8,
+    "risk_score": 35,
+    "final_score": 54.3,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "thorchain",
+    "symbol": "RUNE",
+    "name": "THORChain",
+    "image_url": "https://coin-images.coingecko.com/coins/images/6595/large/THORChain_RUNE_Token.png?1782452363",
+    "verdict": "WATCH",
+    "confidence": 72,
+    "reasoning": [
+      "🔥 Momentum 24h positivo (+14.9%) com estrutura altista.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1.07x com 93% do supply já em circulação.",
+      "📈 RSI equilibrado em 59.6 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.559399,
+    "price_change_24h": 14.91558,
+    "opportunity_score": 59.2,
+    "risk_score": 10,
+    "final_score": 54.2,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "zebec-network",
+    "symbol": "ZBCN",
+    "name": "Zebec Network",
+    "image_url": "https://coin-images.coingecko.com/coins/images/37052/large/zbcn.jpeg?1713168241",
+    "verdict": "WATCH",
+    "confidence": 71,
+    "reasoning": [
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 75.7).",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.00208107,
+    "price_change_24h": 9.94935,
+    "opportunity_score": 61.4,
+    "risk_score": 15,
+    "final_score": 53.9,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "acurast",
+    "symbol": "ACU",
+    "name": "Acurast",
+    "image_url": "https://coin-images.coingecko.com/coins/images/34367/large/Acurast-symbol-dark-bg.png?1728418440",
     "verdict": "WATCH",
     "confidence": 70,
     "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 70.4).",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 70.4 (sem sobrecompra extrema)."
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 64).",
+      "📈 RSI equilibrado em 64 (sem sobrecompra extrema)."
     ],
     "risk_flags": [],
-    "price_at_recommendation": 5.48,
-    "price_change_24h": 8.33235,
-    "opportunity_score": 60.6,
-    "risk_score": 15,
-    "final_score": 53.1,
-    "created_at": "2026-08-24T13:05:11.977Z"
+    "price_at_recommendation": 0.142355,
+    "price_change_24h": 11.38707,
+    "opportunity_score": 63.5,
+    "risk_score": 20,
+    "final_score": 53.5,
+    "created_at": "2026-08-27T11:02:29.273Z"
   },
   {
-    "coin_id": "blockstack",
-    "symbol": "STX",
-    "name": "Stacks",
-    "image_url": "https://coin-images.coingecko.com/coins/images/2069/large/Stacks_Logo_png.png?1709979332",
+    "coin_id": "useless-3",
+    "symbol": "USELESS",
+    "name": "Useless Coin",
+    "image_url": "https://coin-images.coingecko.com/coins/images/55684/large/coingeckoupdate.png?1755203747",
+    "verdict": "WATCH",
+    "confidence": 71,
+    "reasoning": [
+      "🔥 Momentum 24h positivo (+7.1%) com estrutura altista.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 69.6 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.069759,
+    "price_change_24h": 7.11887,
+    "opportunity_score": 58.3,
+    "risk_score": 10,
+    "final_score": 53.3,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "seeker",
+    "symbol": "SKR",
+    "name": "Seeker",
+    "image_url": "https://coin-images.coingecko.com/coins/images/70974/large/seeker-logo.jpg?1764922774",
     "verdict": "WATCH",
     "confidence": 69,
     "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 67.4).",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 67.4 (sem sobrecompra extrema)."
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 70.4).",
+      "📈 RSI equilibrado em 70.4 (sem sobrecompra extrema)."
     ],
     "risk_flags": [],
-    "price_at_recommendation": 0.243579,
-    "price_change_24h": 3.79891,
-    "opportunity_score": 65.6,
+    "price_at_recommendation": 0.00861599,
+    "price_change_24h": 8.00659,
+    "opportunity_score": 65.5,
     "risk_score": 25,
-    "final_score": 53.1,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "ethena",
-    "symbol": "ENA",
-    "name": "Ethena",
-    "image_url": "https://coin-images.coingecko.com/coins/images/36530/large/ethena.png?1711701436",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🌱 Token com ~54 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "📈 RSI equilibrado em 51 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.162881,
-    "price_change_24h": -6.86042,
-    "opportunity_score": 57.4,
-    "risk_score": 10,
-    "final_score": 52.4,
-    "created_at": "2026-08-24T13:05:11.977Z"
+    "final_score": 53,
+    "created_at": "2026-08-27T11:02:29.273Z"
   },
   {
     "coin_id": "sonic-3",
@@ -376,235 +496,113 @@
     "verdict": "WATCH",
     "confidence": 60,
     "reasoning": [
-      "🌱 Token com ~59 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
+      "🔥 Momentum 24h positivo (+11.7%) com estrutura altista.",
+      "⚡ Injeção de volume: 1.9x acima da média móvel dos últimos 7 dias.",
       "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 61.9 (sem sobrecompra extrema)."
+      "📈 RSI equilibrado em 53.3 (sem sobrecompra extrema)."
     ],
     "risk_flags": [],
-    "price_at_recommendation": 0.02848772,
-    "price_change_24h": 0.55038,
-    "opportunity_score": 51.8,
-    "risk_score": 0,
-    "final_score": 51.8,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "ape-and-pepe",
-    "symbol": "APEPE",
-    "name": "Ape and Pepe",
-    "image_url": "https://coin-images.coingecko.com/coins/images/39614/large/APEPE_200.png?1723142351",
-    "verdict": "WATCH",
-    "confidence": 69,
-    "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 55.7).",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 55.7 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.00000125,
-    "price_change_24h": 0.7248,
-    "opportunity_score": 59.1,
-    "risk_score": 15,
-    "final_score": 51.6,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "sushi",
-    "symbol": "SUSHI",
-    "name": "Sushi",
-    "image_url": "https://coin-images.coingecko.com/coins/images/12271/large/512x512_Logo_no_chop.png?1696512101",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🌱 Token com ~59 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1.02x com 98% do supply já em circulação.",
-      "📈 RSI equilibrado em 53.2 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.204513,
-    "price_change_24h": 0.53927,
-    "opportunity_score": 51.4,
-    "risk_score": 0,
-    "final_score": 51.4,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "lido-dao",
-    "symbol": "LDO",
-    "name": "Lido DAO",
-    "image_url": "https://coin-images.coingecko.com/coins/images/13573/large/Lido_DAO.png?1696513326",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🌱 Token com ~59 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1.2x com 84% do supply já em circulação.",
-      "📈 RSI equilibrado em 53.8 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.391168,
-    "price_change_24h": 1.78468,
-    "opportunity_score": 50.9,
-    "risk_score": 0,
-    "final_score": 50.9,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "pepe",
-    "symbol": "PEPE",
-    "name": "Pepe",
-    "image_url": "https://coin-images.coingecko.com/coins/images/29850/large/pepe-token.jpeg?1696528776",
-    "verdict": "WATCH",
-    "confidence": 69,
-    "reasoning": [
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 61.7 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.00000416,
-    "price_change_24h": 2.7119,
-    "opportunity_score": 58.1,
-    "risk_score": 15,
-    "final_score": 50.6,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "enjincoin",
-    "symbol": "ENJ",
-    "name": "Enjin Coin",
-    "image_url": "https://coin-images.coingecko.com/coins/images/1102/large/Symbol_Only_-_Purple.png?1709725966",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🌱 Token com ~169 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1.01x com 99% do supply já em circulação.",
-      "📈 RSI equilibrado em 63.7 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.02846108,
-    "price_change_24h": 4.31999,
-    "opportunity_score": 50.6,
-    "risk_score": 0,
-    "final_score": 50.6,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "celestia",
-    "symbol": "TIA",
-    "name": "Celestia",
-    "image_url": "https://coin-images.coingecko.com/coins/images/31967/large/tia.jpg?1696530772",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🌱 Token com ~79 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1.23x com 82% do supply já em circulação.",
-      "📈 RSI equilibrado em 52.8 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.376934,
-    "price_change_24h": -0.34731,
-    "opportunity_score": 50.4,
-    "risk_score": 0,
-    "final_score": 50.4,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "four",
-    "symbol": "FORM",
-    "name": "Four",
-    "image_url": "https://coin-images.coingecko.com/coins/images/54912/large/four.jpg?1742461445",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🌱 Token com ~37 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "📈 RSI equilibrado em 55.1 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.270536,
-    "price_change_24h": -0.86439,
-    "opportunity_score": 52.7,
-    "risk_score": 5,
-    "final_score": 50.2,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "virtual-protocol",
-    "symbol": "VIRTUAL",
-    "name": "Virtuals Protocol",
-    "image_url": "https://coin-images.coingecko.com/coins/images/34057/large/LOGOMARK.png?1708356054",
-    "verdict": "WATCH",
-    "confidence": 68,
-    "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 68.8).",
-      "📈 RSI equilibrado em 68.8 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.763264,
-    "price_change_24h": 10.91899,
-    "opportunity_score": 62.5,
-    "risk_score": 25,
-    "final_score": 50,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "thorchain",
-    "symbol": "RUNE",
-    "name": "THORChain",
-    "image_url": "https://coin-images.coingecko.com/coins/images/6595/large/THORChain_RUNE_Token.png?1782452363",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 70.8).",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1.05x com 96% do supply já em circulação.",
-      "📈 RSI equilibrado em 70.8 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.485646,
-    "price_change_24h": 3.12234,
-    "opportunity_score": 57.4,
-    "risk_score": 15,
-    "final_score": 49.9,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "score",
-    "symbol": "SN44",
-    "name": "Score",
-    "image_url": "https://coin-images.coingecko.com/coins/images/66325/large/score-logo.jpg?1749213803",
-    "verdict": "AVOID",
-    "confidence": 85,
-    "reasoning": [
-      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 66.1).",
-      "🌱 Token com ~143 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
-      "📈 RSI equilibrado em 66.1 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [
-      "⚠️ Giro de liquidez baixo (1.8% de volume/MCap) — risco de derrapagem (slippage)."
-    ],
-    "price_at_recommendation": 10.02,
-    "price_change_24h": 7.33162,
-    "opportunity_score": 62.2,
-    "risk_score": 25,
-    "final_score": 49.7,
-    "created_at": "2026-08-24T13:05:11.977Z"
-  },
-  {
-    "coin_id": "meteora",
-    "symbol": "MET",
-    "name": "Meteora",
-    "image_url": "https://coin-images.coingecko.com/coins/images/69110/large/meteora.png?1757517561",
-    "verdict": "WATCH",
-    "confidence": 60,
-    "reasoning": [
-      "🌱 Token com ~79 dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.",
-      "📈 RSI equilibrado em 51.5 (sem sobrecompra extrema)."
-    ],
-    "risk_flags": [],
-    "price_at_recommendation": 0.234222,
-    "price_change_24h": 2.19286,
-    "opportunity_score": 54.5,
+    "price_at_recommendation": 0.03091471,
+    "price_change_24h": 11.65618,
+    "opportunity_score": 57.7,
     "risk_score": 10,
-    "final_score": 49.5,
-    "created_at": "2026-08-24T13:05:11.977Z"
+    "final_score": 52.7,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "fartcoin",
+    "symbol": "FARTCOIN",
+    "name": "Fartcoin",
+    "image_url": "https://coin-images.coingecko.com/coins/images/50891/large/fart.jpg?1729503972",
+    "verdict": "WATCH",
+    "confidence": 60,
+    "reasoning": [
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 55.5 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.208328,
+    "price_change_24h": 0.18578,
+    "opportunity_score": 57.3,
+    "risk_score": 10,
+    "final_score": 52.3,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "ethena",
+    "symbol": "ENA",
+    "name": "Ethena",
+    "image_url": "https://coin-images.coingecko.com/coins/images/36530/large/ethena.png?1711701436",
+    "verdict": "WATCH",
+    "confidence": 69,
+    "reasoning": [
+      "📈 RSI equilibrado em 56.4 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.150184,
+    "price_change_24h": 4.44415,
+    "opportunity_score": 62.1,
+    "risk_score": 20,
+    "final_score": 52.1,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "dogwifcoin",
+    "symbol": "WIF",
+    "name": "dogwifhat",
+    "image_url": "https://coin-images.coingecko.com/coins/images/33566/large/dogwifhat.jpg?1702499428",
+    "verdict": "WATCH",
+    "confidence": 60,
+    "reasoning": [
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 54.1 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 0.209496,
+    "price_change_24h": 3.70358,
+    "opportunity_score": 56.7,
+    "risk_score": 10,
+    "final_score": 51.7,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "spacex-bstocks-tokenized-stock",
+    "symbol": "SPCXB",
+    "name": "SpaceX (bStocks Tokenized Stock)",
+    "image_url": "https://coin-images.coingecko.com/coins/images/102173888/large/bstocks_spacex.png?1781280362",
+    "verdict": "WATCH",
+    "confidence": 60,
+    "reasoning": [
+      "🚀 Breakout confirmado: ativo rompeu máxima recente com momentum comprador (RSI: 59.2).",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1x com 100% do supply já em circulação.",
+      "📈 RSI equilibrado em 59.2 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 140.59,
+    "price_change_24h": 1.92019,
+    "opportunity_score": 56.4,
+    "risk_score": 10,
+    "final_score": 51.4,
+    "created_at": "2026-08-27T11:02:29.273Z"
+  },
+  {
+    "coin_id": "prometeus",
+    "symbol": "PROM",
+    "name": "Prom",
+    "image_url": "https://coin-images.coingecko.com/coins/images/8825/large/Ticker.png?1696508978",
+    "verdict": "WATCH",
+    "confidence": 60,
+    "reasoning": [
+      "🔥 Momentum 24h positivo (+11.2%) com estrutura altista.",
+      "🛡️ Baixo risco de diluição: FDV/MCap de 1.05x com 95% do supply já em circulação.",
+      "📈 RSI equilibrado em 57.4 (sem sobrecompra extrema)."
+    ],
+    "risk_flags": [],
+    "price_at_recommendation": 4.6,
+    "price_change_24h": 11.22042,
+    "opportunity_score": 55.6,
+    "risk_score": 10,
+    "final_score": 50.6,
+    "created_at": "2026-08-27T11:02:29.273Z"
   }
 ]

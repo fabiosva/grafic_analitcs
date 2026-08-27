@@ -537,7 +537,9 @@ def data_health(df: pd.DataFrame) -> list[dict]:
     esta usando um dado reciclado (rodizio) em vez de fresco."""
     if df.empty:
         return []
-    hoje = pd.Timestamp(df["data"].iloc[-1])
+    # A idade precisa ser comparada com o calendario real. Usar a ultima linha
+    # como "hoje" fazia um arquivo inteiro vencido parecer perfeitamente atual.
+    hoje = pd.Timestamp.now().normalize()
     colunas = list(dict.fromkeys(list(INDICATORS.keys()) + ["fear_greed", "preco"]))
     linhas = []
     for coluna in colunas:

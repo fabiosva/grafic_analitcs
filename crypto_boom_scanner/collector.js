@@ -142,7 +142,7 @@ async function collectTopCoins() {
 
     // Cálculo de idade do token (Adendo v3)
     let ageDays = null;
-    let ageSource = 'estimated';
+    let ageSource = 'unknown';
     let firstSeenAt = snapshotTime;
     let genesisDate = item.genesis_date || null;
 
@@ -154,16 +154,19 @@ async function collectTopCoins() {
       if (existing && existing.first_seen_at) {
         firstSeenAt = existing.first_seen_at;
         ageDays = Math.max(1, Math.floor((nowMs - new Date(firstSeenAt).getTime()) / (1000 * 60 * 60 * 24)));
+        ageSource = existing.age_source || 'observed';
       } else if (item.atl_date) {
-        // Se temos a data de ATL ou ATH antiga, usamos como piso de idade
+        // ATL/ATH prova apenas que o ativo já existia nessa data; não é data
+        // de lançamento. Mantém explicitamente como limite inferior.
         const refDate = item.atl_date || item.ath_date;
         if (refDate) {
           ageDays = Math.max(1, Math.floor((nowMs - new Date(refDate).getTime()) / (1000 * 60 * 60 * 24)));
+          ageSource = 'lower_bound';
         } else {
-          ageDays = 45; // default fase de descoberta se novo no monitor
+          ageDays = null;
         }
       } else {
-        ageDays = 45;
+        ageDays = null;
       }
     }
 

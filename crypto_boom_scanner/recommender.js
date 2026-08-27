@@ -22,10 +22,10 @@ function buildReasoning(item) {
   }
 
   // 3. Fase de Idade e Descoberta
-  const ageDays = riskComp.ageDays || 60;
-  if (ageDays >= 30 && ageDays <= 180) {
+  const ageDays = riskComp.ageDays;
+  if (riskComp.ageCategory === 'DISCOVERY' && ageDays != null) {
     reasoning.push(`🌱 Token com ~${ageDays} dias (Fase de Descoberta): baixa pressão vendedora de holders antigos.`);
-  } else if (ageDays > 730 && riskComp.athChangePct >= -35) {
+  } else if (ageDays != null && ageDays > 730 && riskComp.athChangePct >= -35) {
     reasoning.push(`⭐ Ativo consolidado (~${Math.round(ageDays/365)} anos) operando próximo ao topo histórico (${riskComp.athChangePct}% do ATH).`);
   }
 
@@ -77,7 +77,7 @@ function buildRiskFlags(item) {
   }
 
   // 5. Token Recém-Lançado
-  if (riskComp.ageDays < 30) {
+  if (riskComp.ageCategory === 'NEW') {
     flags.push(`⚠️ Token muito novo (< 30 dias) — histórico insuficiente e risco de volatilidade extrema.`);
   }
 
@@ -104,7 +104,7 @@ function generateRecommendations(scoresWithMeta, topN = 25) {
     const signal = item.signal_category;
     const comp = item.components || {};
     const riskComp = comp.riskComponents || {};
-    const ageDays = riskComp.ageDays || 60;
+    const ageCategory = riskComp.ageCategory || 'UNKNOWN';
     const isDeadWeight = riskComp.isDeadWeight || false;
 
     let verdict = 'WATCH';
@@ -120,7 +120,7 @@ function generateRecommendations(scoresWithMeta, topN = 25) {
     } else if (
       opp >= 70 && 
       risk <= 35 && 
-      ( (ageDays >= 30 && ageDays <= 180) || riskComp.athChangePct >= -35 )
+      (ageCategory === 'DISCOVERY' || riskComp.athChangePct >= -35)
     ) {
       verdict = 'STRONG_WATCH';
       confidence = Math.min(95, Math.round(opp * 0.7 + (100 - risk) * 0.3));

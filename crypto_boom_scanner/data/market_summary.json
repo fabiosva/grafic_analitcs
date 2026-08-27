@@ -1,11 +1,11 @@
 {
-  "regime": "MERCADO EQUILIBRADO",
-  "regimeColor": "#38bdf8",
-  "summaryText": "No ciclo atual, 2 ativos receberam veredito STRONG_WATCH e 3 estão em BOOM WATCH. A variação média do top 376 é de +2.40% em 24h.",
-  "strongWatchCount": 2,
-  "boomWatchCount": 3,
-  "accumulationCount": 0,
-  "extendedCount": 1,
-  "avgChange24h": 2.4,
-  "updatedAt": "2026-08-24T13:05:11.979Z"
+  "regime": "🐋 ACUMULAÇÃO GERAL (Baleias Ativas)",
+  "regimeColor": "#06b6d4",
+  "summaryText": "No ciclo atual, 0 ativos receberam veredito STRONG_WATCH e 11 estão em BOOM WATCH. A variação média do top 379 é de +1.77% em 24h.",
+  "strongWatchCount": 0,
+  "boomWatchCount": 11,
+  "accumulationCount": 13,
+  "extendedCount": 0,
+  "avgChange24h": 1.77,
+  "updatedAt": "2026-08-27T11:02:29.275Z"
 }

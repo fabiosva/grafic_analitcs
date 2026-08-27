@@ -1,5 +1,357 @@
 [
   {
+    "coin_id": "figure-heloc",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] FIGR_HELOC (Figure Heloc)</b>\n📊 <b>Final Score:</b> 20.3/100\n🎯 <b>Opportunity:</b> 37.8 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $1,003 (-0.68% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.15x | 📈 <b>RSI:</b> 38.4\n🔗 <a href=\"https://www.coingecko.com/en/coins/figure-heloc\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.536Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "peaq-2",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] PEAQ (peaq)</b>\n📊 <b>Final Score:</b> 32.5/100\n🎯 <b>Opportunity:</b> 45 | 🛡️ <b>Risco:</b> 25\n💰 <b>Preço:</b> $0,023 (+2.75% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.89x | 📈 <b>RSI:</b> 43.4\n🔗 <a href=\"https://www.coingecko.com/en/coins/peaq-2\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.532Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "hydradx",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] HDX (Hydration)</b>\n📊 <b>Final Score:</b> 35.3/100\n🎯 <b>Opportunity:</b> 52.8 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $0,01 (-0.85% 24h)\n⚡ <b>Vol Accel 7d:</b> 6.37x | 📈 <b>RSI:</b> 51.9\n🔗 <a href=\"https://www.coingecko.com/en/coins/hydradx\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.527Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "qtum",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] QTUM (Qtum)</b>\n📊 <b>Final Score:</b> 40.6/100\n🎯 <b>Opportunity:</b> 48.1 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $0,853 (+1.12% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.89x | 📈 <b>RSI:</b> 45.4\n🔗 <a href=\"https://www.coingecko.com/en/coins/qtum\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.523Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "circle-internet-group-ondo-tokenized-stock",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] CRCLON (Circle Internet Group (Ondo Tokenized Stock))</b>\n📊 <b>Final Score:</b> 40.8/100\n🎯 <b>Opportunity:</b> 53.3 | 🛡️ <b>Risco:</b> 25\n💰 <b>Preço:</b> $91,56 (+0.17% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.93x | 📈 <b>RSI:</b> 57\n🔗 <a href=\"https://www.coingecko.com/en/coins/circle-internet-group-ondo-tokenized-stock\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.519Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "venus",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] XVS (Venus)</b>\n📊 <b>Final Score:</b> 45.5/100\n🎯 <b>Opportunity:</b> 58 | 🛡️ <b>Risco:</b> 25\n💰 <b>Preço:</b> $3,19 (+3.98% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.95x | 📈 <b>RSI:</b> 59.1\n🔗 <a href=\"https://www.coingecko.com/en/coins/venus\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.516Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "mag7-ssi",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] MAG7.SSI (MAG7.ssi)</b>\n📊 <b>Final Score:</b> 46.8/100\n🎯 <b>Opportunity:</b> 64.3 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $0,531 (+0.96% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.86x | 📈 <b>RSI:</b> 60.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/mag7-ssi\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.513Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "kinesis-silver",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] KAG (Kinesis Silver)</b>\n📊 <b>Final Score:</b> 47/100\n🎯 <b>Opportunity:</b> 64.5 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $68,3 (-0.34% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.75x | 📈 <b>RSI:</b> 62.6\n🔗 <a href=\"https://www.coingecko.com/en/coins/kinesis-silver\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.509Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "ylds",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] YLDS (YLDS)</b>\n📊 <b>Final Score:</b> 50.5/100\n🎯 <b>Opportunity:</b> 63 | 🛡️ <b>Risco:</b> 25\n💰 <b>Preço:</b> $1 (+0.01% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.57x | 📈 <b>RSI:</b> 57\n🔗 <a href=\"https://www.coingecko.com/en/coins/ylds\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.505Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "meme-horse",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] MHORSE (MEME HORSE)</b>\n📊 <b>Final Score:</b> 54.3/100\n🎯 <b>Opportunity:</b> 71.8 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $0,061 (+0.03% 24h)\n⚡ <b>Vol Accel 7d:</b> 4.31x | 📈 <b>RSI:</b> 54.9\n🔗 <a href=\"https://www.coingecko.com/en/coins/meme-horse\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.502Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "astar",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] ASTR (Astar)</b>\n📊 <b>Final Score:</b> 57.7/100\n🎯 <b>Opportunity:</b> 62.7 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $0,006 (+1.98% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.67x | 📈 <b>RSI:</b> 51.8\n🔗 <a href=\"https://www.coingecko.com/en/coins/astar\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.499Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "targon",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] SN4 (Targon)</b>\n📊 <b>Final Score:</b> 59.6/100\n🎯 <b>Opportunity:</b> 77.1 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $14,38 (+9.45% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.27x | 📈 <b>RSI:</b> 77.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/targon\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.495Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "meta-2-2",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] META (MetaDAO)</b>\n📊 <b>Final Score:</b> 59.7/100\n🎯 <b>Opportunity:</b> 64.7 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $6,66 (+2.05% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.56x | 📈 <b>RSI:</b> 47.6\n🔗 <a href=\"https://www.coingecko.com/en/coins/meta-2-2\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.492Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "kamino",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] KMNO (Kamino)</b>\n📊 <b>Final Score:</b> 62/100\n🎯 <b>Opportunity:</b> 72 | 🛡️ <b>Risco:</b> 20\n💰 <b>Preço:</b> $0,028 (+16.83% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.32x | 📈 <b>RSI:</b> 72\n🔗 <a href=\"https://www.coingecko.com/en/coins/kamino\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.488Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "affine",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] SN120 (affine)</b>\n📊 <b>Final Score:</b> 62.2/100\n🎯 <b>Opportunity:</b> 79.7 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $13,68 (+9.50% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.03x | 📈 <b>RSI:</b> 79.6\n🔗 <a href=\"https://www.coingecko.com/en/coins/affine\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.485Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "polymesh",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] POLYX (Polymesh)</b>\n📊 <b>Final Score:</b> 63.6/100\n🎯 <b>Opportunity:</b> 68.6 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $0,035 (+3.17% 24h)\n⚡ <b>Vol Accel 7d:</b> 7.13x | 📈 <b>RSI:</b> 59.9\n🔗 <a href=\"https://www.coingecko.com/en/coins/polymesh\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.482Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "ontology",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] ONT (Ontology)</b>\n📊 <b>Final Score:</b> 65.5/100\n🎯 <b>Opportunity:</b> 70.5 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $0,059 (+14.75% 24h)\n⚡ <b>Vol Accel 7d:</b> 4.6x | 📈 <b>RSI:</b> 47.3\n🔗 <a href=\"https://www.coingecko.com/en/coins/ontology\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.479Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "spx6900",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] SPX (SPX6900)</b>\n📊 <b>Final Score:</b> 68/100\n🎯 <b>Opportunity:</b> 75.5 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $0,609 (+14.28% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.1x | 📈 <b>RSI:</b> 60.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/spx6900\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.476Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "gas",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] GAS (Gas)</b>\n📊 <b>Final Score:</b> 68.2/100\n🎯 <b>Opportunity:</b> 73.2 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $1,34 (+8.41% 24h)\n⚡ <b>Vol Accel 7d:</b> 3.85x | 📈 <b>RSI:</b> 53\n🔗 <a href=\"https://www.coingecko.com/en/coins/gas\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.472Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "mina-protocol",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] MINA (Mina Protocol)</b>\n📊 <b>Final Score:</b> 70.6/100\n🎯 <b>Opportunity:</b> 75.6 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $0,067 (+6.48% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.85x | 📈 <b>RSI:</b> 69.9\n🔗 <a href=\"https://www.coingecko.com/en/coins/mina-protocol\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.469Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "vechain",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] VET (VeChain)</b>\n📊 <b>Final Score:</b> 72/100\n🎯 <b>Opportunity:</b> 79.5 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $0,007 (+18.81% 24h)\n⚡ <b>Vol Accel 7d:</b> 4.48x | 📈 <b>RSI:</b> 66.9\n🔗 <a href=\"https://www.coingecko.com/en/coins/vechain\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.466Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "convex-finance",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] CVX (Convex Finance)</b>\n📊 <b>Final Score:</b> 73.6/100\n🎯 <b>Opportunity:</b> 78.6 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $2,46 (+9.58% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.13x | 📈 <b>RSI:</b> 66.1\n🔗 <a href=\"https://www.coingecko.com/en/coins/convex-finance\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.463Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "non-playable-coin",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] NPC (Non-Playable Coin)</b>\n📊 <b>Final Score:</b> 74.2/100\n🎯 <b>Opportunity:</b> 81.7 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $0,018 (+31.45% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.55x | 📈 <b>RSI:</b> 74.2\n🔗 <a href=\"https://www.coingecko.com/en/coins/non-playable-coin\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.460Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "beam-2",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] BEAM (Beam)</b>\n📊 <b>Final Score:</b> 77.3/100\n🎯 <b>Opportunity:</b> 82.3 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $0,002 (+35.00% 24h)\n⚡ <b>Vol Accel 7d:</b> 15.4x | 📈 <b>RSI:</b> 73.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/beam-2\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-27T11:02:29.457Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "figure-heloc",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] FIGR_HELOC (Figure Heloc)</b>\n📊 <b>Final Score:</b> 28/100\n🎯 <b>Opportunity:</b> 45.5 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $1,009 (-2.32% 24h)\n⚡ <b>Vol Accel 7d:</b> 3.83x | 📈 <b>RSI:</b> 34.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/figure-heloc\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T19:47:20.875Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "meme-horse",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] MHORSE (MEME HORSE)</b>\n📊 <b>Final Score:</b> 33.7/100\n🎯 <b>Opportunity:</b> 51.2 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $0,061 (+0.03% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.81x | 📈 <b>RSI:</b> 50.5\n🔗 <a href=\"https://www.coingecko.com/en/coins/meme-horse\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T19:47:20.871Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "sp500-xstock",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] SPYX (SP500 xStock)</b>\n📊 <b>Final Score:</b> 37.8/100\n🎯 <b>Opportunity:</b> 55.3 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $770,58 (+0.17% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.81x | 📈 <b>RSI:</b> 56.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/sp500-xstock\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T19:47:20.868Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "ylds",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] YLDS (YLDS)</b>\n📊 <b>Final Score:</b> 50.6/100\n🎯 <b>Opportunity:</b> 68.1 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $1 (+0.01% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.3x | 📈 <b>RSI:</b> 53.1\n🔗 <a href=\"https://www.coingecko.com/en/coins/ylds\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T19:47:20.864Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "sonic-3",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] S (Sonic)</b>\n📊 <b>Final Score:</b> 66/100\n🎯 <b>Opportunity:</b> 71 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $0,031 (+10.56% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.92x | 📈 <b>RSI:</b> 77.3\n🔗 <a href=\"https://www.coingecko.com/en/coins/sonic-3\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T19:47:20.861Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "playnance",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] GCOIN (Playnance)</b>\n📊 <b>Final Score:</b> 27.2/100\n🎯 <b>Opportunity:</b> 44.7 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $0,002 (+4.47% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.1x | 📈 <b>RSI:</b> 44.8\n🔗 <a href=\"https://www.coingecko.com/en/coins/playnance\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.373Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "kucoin-shares",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] KCS (KuCoin)</b>\n📊 <b>Final Score:</b> 35.1/100\n🎯 <b>Opportunity:</b> 42.6 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $7,18 (+0.02% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.98x | 📈 <b>RSI:</b> 46.5\n🔗 <a href=\"https://www.coingecko.com/en/coins/kucoin-shares\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.370Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "espresso",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] ESP (Espresso)</b>\n📊 <b>Final Score:</b> 41.4/100\n🎯 <b>Opportunity:</b> 61.4 | 🛡️ <b>Risco:</b> 40\n💰 <b>Preço:</b> $0,091 (-1.12% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.23x | 📈 <b>RSI:</b> 49.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/espresso\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.367Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "trust-wallet-token",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] TWT (Trust Wallet)</b>\n📊 <b>Final Score:</b> 45/100\n🎯 <b>Opportunity:</b> 57.5 | 🛡️ <b>Risco:</b> 25\n💰 <b>Preço:</b> $0,445 (-2.38% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.4x | 📈 <b>RSI:</b> 43\n🔗 <a href=\"https://www.coingecko.com/en/coins/trust-wallet-token\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.364Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "bedrock-token",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] BR (Bedrock)</b>\n📊 <b>Final Score:</b> 47.5/100\n🎯 <b>Opportunity:</b> 67.5 | 🛡️ <b>Risco:</b> 40\n💰 <b>Preço:</b> $0,265 (+0.11% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.1x | 📈 <b>RSI:</b> 48.2\n🔗 <a href=\"https://www.coingecko.com/en/coins/bedrock-token\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.361Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "circle-internet-group-ondo-tokenized-stock",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] CRCLON (Circle Internet Group (Ondo Tokenized Stock))</b>\n📊 <b>Final Score:</b> 49.2/100\n🎯 <b>Opportunity:</b> 61.7 | 🛡️ <b>Risco:</b> 25\n💰 <b>Preço:</b> $89,63 (-2.75% 24h)\n⚡ <b>Vol Accel 7d:</b> 4.87x | 📈 <b>RSI:</b> 46.3\n🔗 <a href=\"https://www.coingecko.com/en/coins/circle-internet-group-ondo-tokenized-stock\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.358Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "proton",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] XPR (XPR Network)</b>\n📊 <b>Final Score:</b> 50.6/100\n🎯 <b>Opportunity:</b> 58.1 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $0,003 (+1.63% 24h)\n⚡ <b>Vol Accel 7d:</b> 2x | 📈 <b>RSI:</b> 74.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/proton\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.355Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "circle-internet-group-bstock",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] CRCLB (Circle Internet Group (bStocks Tokenized Stock))</b>\n📊 <b>Final Score:</b> 53.8/100\n🎯 <b>Opportunity:</b> 58.8 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $89,66 (-2.70% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.8x | 📈 <b>RSI:</b> 46.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/circle-internet-group-bstock\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.351Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "safecoin",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] SAFE (SAFEbit)</b>\n📊 <b>Final Score:</b> 54.2/100\n🎯 <b>Opportunity:</b> 71.7 | 🛡️ <b>Risco:</b> 35\n💰 <b>Preço:</b> $0,138 (+18.92% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.2x | 📈 <b>RSI:</b> 71.9\n🔗 <a href=\"https://www.coingecko.com/en/coins/safecoin\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.349Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "cysic",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] CYS (Cysic)</b>\n📊 <b>Final Score:</b> 55.4/100\n🎯 <b>Opportunity:</b> 75.4 | 🛡️ <b>Risco:</b> 40\n💰 <b>Preço:</b> $0,759 (+10.81% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.88x | 📈 <b>RSI:</b> 69.6\n🔗 <a href=\"https://www.coingecko.com/en/coins/cysic\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.346Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "spx6900",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] SPX (SPX6900)</b>\n📊 <b>Final Score:</b> 59.3/100\n🎯 <b>Opportunity:</b> 66.8 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $0,535 (+1.79% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.91x | 📈 <b>RSI:</b> 56.4\n🔗 <a href=\"https://www.coingecko.com/en/coins/spx6900\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.342Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "instadapp",
+    "type": "accumulation",
+    "message": "🐋 <b>[ACUMULAÇÃO DETECTADA] FLUID (Fluid)</b>\n📊 <b>Final Score:</b> 63.8/100\n🎯 <b>Opportunity:</b> 68.8 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $1,41 (+5.76% 24h)\n⚡ <b>Vol Accel 7d:</b> 8.56x | 📈 <b>RSI:</b> 49.1\n🔗 <a href=\"https://www.coingecko.com/en/coins/instadapp\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.339Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "peaq-2",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] PEAQ (peaq)</b>\n📊 <b>Final Score:</b> 74.3/100\n🎯 <b>Opportunity:</b> 86.8 | 🛡️ <b>Risco:</b> 25\n💰 <b>Preço:</b> $0,025 (+10.86% 24h)\n⚡ <b>Vol Accel 7d:</b> 5.56x | 📈 <b>RSI:</b> 72.6\n🔗 <a href=\"https://www.coingecko.com/en/coins/peaq-2\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.336Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "convex-finance",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] CVX (Convex Finance)</b>\n📊 <b>Final Score:</b> 75/100\n🎯 <b>Opportunity:</b> 82.5 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $2,24 (+8.74% 24h)\n⚡ <b>Vol Accel 7d:</b> 2.55x | 📈 <b>RSI:</b> 65.3\n🔗 <a href=\"https://www.coingecko.com/en/coins/convex-finance\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.333Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
+    "coin_id": "ontology",
+    "type": "boom_watch",
+    "message": "🚀 <b>[BOOM WATCH] ONT (Ontology)</b>\n📊 <b>Final Score:</b> 83.3/100\n🎯 <b>Opportunity:</b> 88.3 | 🛡️ <b>Risco:</b> 10\n💰 <b>Preço:</b> $0,061 (+15.43% 24h)\n⚡ <b>Vol Accel 7d:</b> 3.13x | 📈 <b>RSI:</b> 77.7\n🔗 <a href=\"https://www.coingecko.com/en/coins/ontology\">Ver no CoinGecko</a>",
+    "sent_at": "2026-08-26T17:46:25.330Z",
+    "notified": false,
+    "channel": "telegram"
+  },
+  {
     "coin_id": "dog-go-to-the-moon-rune",
     "type": "boom_watch",
     "message": "🚀 <b>[BOOM WATCH] DOG (Dog (Bitcoin))</b>\n📊 <b>Final Score:</b> 66.9/100\n🎯 <b>Opportunity:</b> 74.4 | 🛡️ <b>Risco:</b> 15\n💰 <b>Preço:</b> $0,001 (+58.61% 24h)\n⚡ <b>Vol Accel 7d:</b> 1.05x | 📈 <b>RSI:</b> 77.3\n🔗 <a href=\"https://www.coingecko.com/en/coins/dog-go-to-the-moon-rune\">Ver no CoinGecko</a>",

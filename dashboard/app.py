@@ -274,6 +274,7 @@ def render_btc_tab():
     ) / (len(STRUCTURAL) + 2)
     window_start, window_end = projection["consensus_start"], projection["consensus_end"]
     as_of = pd.Timestamp(last["data"])
+    dataset_age_days = max(0, (pd.Timestamp.now().normalize() - as_of.normalize()).days)
     days_to_window = (window_start.normalize() - as_of.normalize()).days
 
     if structural_score >= 70 and confirmation_today >= 70:
@@ -285,7 +286,13 @@ def render_btc_tab():
     else:
         read = "Ainda não parece fundo"
 
-    delta_text = f"{daily_delta:+.1f} desde ontem" if pd.notna(daily_delta) else "sem comparação"
+    delta_text = f"{daily_delta:+.1f} desde a leitura anterior" if pd.notna(daily_delta) else "sem comparação"
+
+    if dataset_age_days > 2:
+        st.error(
+            f"Coleta interrompida: a última leitura é de {as_of:%d/%m/%Y}, há {dataset_age_days} dias. "
+            "Notas, alertas e simulações não devem ser tratados como leitura do mercado atual até a coleta normalizar."
+        )
 
     gauge_label, gauge_color = classify(score, coverage_now)
     gauge = go.Figure(go.Indicator(
@@ -315,7 +322,7 @@ def render_btc_tab():
     )
     st.caption(
         f"Combina os {len(INDICATORS)} indicadores do painel numa nota só, cada um com seu peso "
-        f"(cobertura hoje: {coverage_now:.0f}% dos dados disponíveis). Quanto mais alto, mais parecido "
+        f"(cobertura na última leitura: {coverage_now:.0f}% dos dados disponíveis). Quanto mais alto, mais parecido "
         "com momentos históricos de fundo — não é garantia de nada, é confluência de sinais."
     )
 
@@ -323,17 +330,17 @@ def render_btc_tab():
     <div class="hero">
       <div class="hero-grid">
         <div>
-          <div class="eyebrow">Resumo do dia · atualizado em {as_of:%d/%m/%Y}</div>
+          <div class="eyebrow">Última leitura disponível · {as_of:%d/%m/%Y}</div>
           <h1>{read}</h1>
-          <div class="muted">{coverage_now:.0f}% dos dados chegaram hoje · {delta_text}</div>
+          <div class="muted">{coverage_now:.0f}% de cobertura nessa leitura · {delta_text}</div>
         </div>
-        <div class="big-score">{confirmation_today:.0f}<span style="font-size:1.1rem;color:#94a3b8"> / 100 hoje</span></div>
+        <div class="big-score">{confirmation_today:.0f}<span style="font-size:1.1rem;color:#94a3b8"> / 100 na última leitura</span></div>
       </div>
       <div class="score-track"><div class="score-marker" style="left:{max(0,min(100,confirmation_today))}%"></div></div>
     </div>
     """, unsafe_allow_html=True)
     st.caption(
-        f"Nota de hoje: {confirmation_today:.0f}/100 — o quanto os sinais dizem que a virada já começou. "
+        f"Nota da última leitura: {confirmation_today:.0f}/100 — o quanto os sinais indicavam que a virada havia começado. "
         f"Preço barato: {structural_score:.0f}/100 (muda devagar, ao longo de meses). "
         f"Já virou: {tactical_score:.0f}/100 (muda rápido, dia a dia). "
         "Preço barato sozinho não quer dizer que o menor preço já passou."
@@ -363,8 +370,11 @@ def render_btc_tab():
     if vencidos:
         alertas.append(("🔴", f"Dado crítico desatualizado (mais de 7 dias): {', '.join(vencidos)}. A nota de hoje pode estar usando valor antigo nesses indicadores."))
 
+    if dataset_age_days > 2:
+        alertas = [("🔴", f"Leitura geral vencida há {dataset_age_days} dias. Os demais alertas ficam suspensos até a próxima coleta válida.")]
+
     if alertas:
-        st.markdown("##### Alertas de hoje")
+        st.markdown("##### Alertas da leitura")
         for emoji, texto in alertas:
             st.markdown(f"{emoji} {texto}")
         st.caption("Alertas aparecem só quando algo muda de faixa, a confirmação fica muito forte, há divergência entre nota e preço, ou um dado crítico está vencido.")
@@ -560,18 +570,21 @@ def render_btc_tab():
     with i4:
         fee_pct = st.number_input("Taxa que a corretora cobra (%)", min_value=0.0, max_value=5.0, value=0.5, step=0.1)
 
-    dca = simulate_dca(capital_brl, btc_price, window_price, usd_brl, fee_pct, strategy, readiness["score"])
+    dca = simulate_dca(
+        capital_brl, btc_price, window_price, usd_brl, fee_pct, strategy,
+        readiness["score"] if dataset_age_days <= 2 else None,
+    )
     next_top_central = NEXT_TOP_WINDOW[0] + (NEXT_TOP_WINDOW[1] - NEXT_TOP_WINDOW[0]) / 2
     hold_years = max(0, (next_top_central - as_of).days / 365.25)
 
     r1, r2, r3, r4 = st.columns(4)
-    r1.metric("É hora de comprar?", f"{readiness['score']:.0f}/100", help="Junta as notas do painel com a proximidade do período de fundo. Nota alta não garante que o fundo chegou.")
-    r2.metric("O que o simulador sugere", readiness["label"], help=readiness["detail"])
+    r1.metric("É hora de comprar?", f"{readiness['score']:.0f}/100" if dataset_age_days <= 2 else "N/D", help="Só é exibido com coleta recente.")
+    r2.metric("Leitura do simulador", readiness["label"] if dataset_age_days <= 2 else "Atualização necessária", help=readiness["detail"] if dataset_age_days <= 2 else "Os dados estão vencidos; o plano usa apenas a divisão padrão escolhida.")
     r3.metric("Quanto de BTC você teria no fim", f"₿ {dca['btc']:.6f}")
     r4.metric("Preço médio que você pagaria", f"US$ {dca['effective_entry_usd']:,.0f}")
 
     st.markdown("#### Como dividir suas compras")
-    st.caption("Se a nota estiver baixa (abaixo de 60), o simulador compra menos agora e guarda mais para depois. Se estiver alta (acima de 80), compra mais agora. Entre os dois, segue o jeito de investir que você escolheu. Essa conta é refeita todo dia.")
+    st.caption("Com dados recentes, a divisão reage à nota do painel. Com dados vencidos, usa apenas o perfil escolhido, sem fingir que existe um sinal atual.")
     plan_df = pd.DataFrame(dca["rows"])
     plan_df["Aporte (R$)"] = plan_df["Aporte (R$)"].map(brl)
     st.dataframe(
@@ -1182,7 +1195,8 @@ def render_btc_tab():
         "paga é usada — quando um dado não está disponível de graça, o painel mostra 'N/D' em vez de inventar."
     )
 
-    st.caption(f"Dados de {source} · leitura do dia {as_of:%d/%m/%Y} · o painel se atualiza sozinho todo dia")
+    freshness = "coleta em dia" if dataset_age_days <= 2 else f"coleta atrasada {dataset_age_days} dias"
+    st.caption(f"Dados de {source} · leitura de {as_of:%d/%m/%Y} · {freshness}")
 
 
 tab_btc, tab_scanner = st.tabs(['₿ Painel Fundo BTC', '🚀 Crypto Boom Scanner'])
