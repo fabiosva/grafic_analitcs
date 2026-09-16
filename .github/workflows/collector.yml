@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0 12 * * *"
   workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "collector/collector.py"
+      - "dashboard/analytics.py"
+      - "dashboard/app.py"
 
 jobs:
   coletar:

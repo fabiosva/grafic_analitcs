@@ -35,7 +35,7 @@ FUNDOS_POS_HALVING = ["2015-01-14", "2018-12-15", "2022-11-21"]
 #
 # O plano gratuito da bitcoin-data.com da 10 requisicoes por hora e 15 por
 # dia, e as metricas principais ja consomem 8. Por isso estes entram em
-# rodizio: EXTRAS_POR_DIA por vez, cada um se renovando a cada 3 dias.
+# rodizio: EXTRAS_POR_DIA por vez, priorizando sempre os dados mais antigos.
 # Quando um deles nao e buscado (ou a API recusa), o painel simplesmente
 # mantem o ultimo valor conhecido, que para modelos assim e suficiente.
 EXTRAS = [
@@ -87,10 +87,32 @@ def fetch_row(endpoint: str):
 
 
 def coletar_extras(agora: datetime) -> dict:
-    """Escolhe EXTRAS_POR_DIA metricas do rodizio com base na data."""
-    total = len(EXTRAS)
-    inicio = (agora.toordinal() * EXTRAS_POR_DIA) % total
-    escolhidos = [EXTRAS[(inicio + i) % total] for i in range(min(EXTRAS_POR_DIA, total))]
+    """Busca primeiro as métricas há mais tempo sem atualização.
+
+    O rodízio antigo dependia do dia do calendário. Se uma execução falhasse,
+    uma métrica podia ficar duas semanas sem nova leitura. A fila por idade
+    recupera automaticamente esses buracos sem exceder a cota gratuita.
+    """
+    history_path = os.path.join(DATA_DIR, "history.json")
+    history = []
+    try:
+        if os.path.exists(history_path):
+            with open(history_path, encoding="utf-8") as history_file:
+                history = json.load(history_file)
+    except (OSError, json.JSONDecodeError):
+        history = []
+
+    ranked = []
+    for position, extra in enumerate(EXTRAS):
+        _, field_map = extra
+        last_date = ""
+        for row in reversed(history):
+            if any(row.get(column) is not None for column in field_map):
+                last_date = row.get("data", "")
+                break
+        ranked.append((last_date, position, extra))
+    ranked.sort(key=lambda item: (item[0], item[1]))
+    escolhidos = [item[2] for item in ranked[:EXTRAS_POR_DIA]]
 
     resultado = {}
     for endpoint, mapa in escolhidos:

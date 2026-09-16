@@ -44,6 +44,35 @@ INDICATORS = {
     "percent_sth_supply": ("STH % da oferta", 0.75, [15, 18, 25, 30], [100, 85, 30, 0]),
 }
 
+# Métricas coletadas em rodízio por causa do limite da API gratuita. Elas
+# mudam devagar e podem usar a última observação por alguns dias, mas nunca
+# indefinidamente. Os demais indicadores precisam de observação do próprio dia.
+ROTATING_INDICATOR_MAX_AGE_DAYS = {
+    "sth_mvrv": 10,
+    "aviv": 10,
+    "vdd_multiple": 10,
+    "percent_lth_in_profit": 10,
+    "short_term_hodler_supply_btc": 10,
+    "supply_current": 10,
+}
+
+
+def prepare_signal_history(df: pd.DataFrame) -> pd.DataFrame:
+    """Preenche somente métricas lentas do rodízio, respeitando sua validade."""
+    work = df.copy()
+    if work.empty or "data" not in work:
+        return work
+    dates = pd.to_datetime(work["data"], errors="coerce").dt.tz_localize(None)
+    work["data"] = dates
+    for column, max_age in ROTATING_INDICATOR_MAX_AGE_DAYS.items():
+        if column not in work:
+            continue
+        raw = pd.to_numeric(work[column], errors="coerce")
+        observed_at = dates.where(raw.notna()).ffill()
+        ages = (dates - observed_at).dt.days
+        work[column] = raw.ffill().where(ages.between(0, max_age))
+    return work
+
 
 def build_signals(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
     """Retorna sinais 0-100, confluencia ponderada e cobertura ponderada."""
@@ -88,6 +117,180 @@ def build_signals(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.Series]
     coverage = available_weight / total_weight * 100
     composite = composite.where(coverage >= 45)
     return signals, composite, coverage
+
+
+def indicator_bottom_events(
+    signals: pd.DataFrame,
+    dates: pd.Series,
+    since: pd.Timestamp | None = None,
+    threshold: float = 75,
+) -> list[dict]:
+    """Resume se cada indicador entrou na sua zona histórica de fundo.
+
+    O evento pertence ao indicador, não declara sozinho que o preço do BTC fez
+    o fundo definitivo. ``triggered_at`` é a entrada mais recente na zona.
+    """
+    if signals.empty:
+        return []
+    date_series = pd.to_datetime(dates, errors="coerce").dt.tz_localize(None)
+    rows = []
+    for label in signals.columns:
+        complete = pd.DataFrame({"data": date_series, "score": signals[label]})
+        current_observation = complete.iloc[-1]["score"] if not complete.empty else np.nan
+        frame = complete.dropna()
+        if since is not None:
+            frame = frame.loc[frame["data"] >= pd.Timestamp(since).tz_localize(None)]
+        if frame.empty:
+            rows.append({
+                "indicator": label, "status": "no_data", "current_score": np.nan,
+                "triggered_at": None, "peak_score": np.nan,
+            })
+            continue
+        in_zone = frame["score"] >= threshold
+        entries = frame.loc[in_zone & ~in_zone.shift(fill_value=False)]
+        triggered_at = pd.Timestamp(entries.iloc[-1]["data"]) if not entries.empty else None
+        current_score = float(current_observation) if pd.notna(current_observation) else np.nan
+        if pd.isna(current_score):
+            status = "stale_after_hit" if triggered_at is not None else "no_data"
+        elif current_score >= threshold:
+            status = "active"
+        elif triggered_at is not None:
+            status = "already_hit"
+        else:
+            status = "not_hit"
+        rows.append({
+            "indicator": label,
+            "status": status,
+            "current_score": current_score,
+            "triggered_at": triggered_at,
+            "peak_score": float(frame["score"].max()),
+        })
+    return rows
+
+
+def assess_cycle_bottom(indicator_df: pd.DataFrame, price_df: pd.DataFrame | None = None) -> dict | None:
+    """Testa se o menor fechamento depois do topo do ciclo ja virou um fundo.
+
+    A funcao nao tenta adivinhar o menor preco futuro. Ela separa duas perguntas:
+    houve capitulacao no menor fechamento observado e o mercado confirmou alguma
+    recuperacao depois dele? O resultado e uma contagem de evidencias, nao uma
+    probabilidade estatistica.
+    """
+    source = price_df if price_df is not None and not price_df.empty else indicator_df
+    prices = source[["data", "preco"]].copy()
+    prices["data"] = pd.to_datetime(prices["data"], errors="coerce").dt.tz_localize(None)
+    prices["preco"] = pd.to_numeric(prices["preco"], errors="coerce")
+    prices = prices.dropna().drop_duplicates("data", keep="last").sort_values("data")
+
+    cycle = prices.loc[prices["data"] >= LAST_HALVING].copy()
+    if len(cycle) < 60:
+        return None
+    top = cycle.loc[cycle["preco"].idxmax()]
+    after_top = cycle.loc[cycle["data"] > top["data"]]
+    if after_top.empty:
+        return None
+    candidate = after_top.loc[after_top["preco"].idxmin()]
+    current = cycle.iloc[-1]
+
+    indicators = indicator_df.copy()
+    indicators["data"] = pd.to_datetime(indicators["data"], errors="coerce").dt.tz_localize(None)
+    indicators = indicators.dropna(subset=["data"]).sort_values("data").reset_index(drop=True)
+    if indicators.empty:
+        return None
+    nearest_pos = int((indicators["data"] - candidate["data"]).abs().idxmin())
+    nearest = indicators.loc[nearest_pos]
+    _, composite, signal_coverage = build_signals(indicators)
+    candidate_score = float(composite.loc[nearest_pos]) if pd.notna(composite.loc[nearest_pos]) else np.nan
+    candidate_coverage = float(signal_coverage.loc[nearest_pos])
+
+    def number(row: pd.Series, name: str) -> float:
+        value = pd.to_numeric(pd.Series([row.get(name)]), errors="coerce").iloc[0]
+        return float(value) if pd.notna(value) else np.nan
+
+    current_indicators = indicators.iloc[-1]
+    current_price = float(current["preco"])
+    candidate_price = float(candidate["preco"])
+    rebound_pct = (current_price / candidate_price - 1) * 100
+    drawdown_pct = (candidate_price / float(top["preco"]) - 1) * 100
+    days_since = int((current["data"] - candidate["data"]).days)
+    expected_days = max(1, days_since + 1)
+    observed_days = int(prices.loc[
+        (prices["data"] >= candidate["data"]) & (prices["data"] <= current["data"]), "data"
+    ].nunique())
+    observation_coverage = min(100.0, observed_days / expected_days * 100)
+
+    fear_greed = number(nearest, "fear_greed")
+    rsi = number(nearest, "rsi")
+    mvrv = number(nearest, "mvrv_zscore")
+    capitulation_inputs = [fear_greed <= 25, rsi <= 35, mvrv <= 0.30]
+    capitulation_passed = sum(bool(value) for value in capitulation_inputs) >= 2
+    sma50 = number(current_indicators, "sma50")
+    sma200 = number(current_indicators, "sma200")
+
+    evidence = [
+        {
+            "name": "Indicadores convergiram no mínimo",
+            "passed": bool(pd.notna(candidate_score) and candidate_score >= 75),
+            "detail": f"nota de fundo {candidate_score:.0f}/100" if pd.notna(candidate_score) else "sem nota suficiente",
+        },
+        {
+            "name": "Houve capitulação",
+            "passed": capitulation_passed,
+            "detail": f"Fear & Greed {fear_greed:.0f}, RSI {rsi:.0f}, MVRV {mvrv:.2f}",
+        },
+        {
+            "name": "Preco reagiu pelo menos 20%",
+            "passed": rebound_pct >= 20,
+            "detail": f"recuperação de {rebound_pct:+.1f}%",
+        },
+        {
+            "name": "Mínimo resistiu por pelo menos 30 dias",
+            "passed": days_since >= 30 and observation_coverage >= 75,
+            "detail": f"{days_since} dias; {observation_coverage:.0f}% dos fechamentos observados",
+        },
+        {
+            "name": "Preço recuperou a média de 50 dias",
+            "passed": bool(pd.notna(sma50) and current_price > sma50),
+            "detail": f"SMA 50 em US$ {sma50:,.0f}" if pd.notna(sma50) else "sem dado",
+        },
+        {
+            "name": "Preço recuperou a média de 200 dias",
+            "passed": bool(pd.notna(sma200) and current_price > sma200),
+            "detail": f"SMA 200 em US$ {sma200:,.0f}" if pd.notna(sma200) else "sem dado",
+        },
+    ]
+    evidence_passed = sum(int(item["passed"]) for item in evidence)
+    if days_since == 0:
+        status, label = "new_low", "Novo mínimo: ainda sem confirmação"
+    elif evidence_passed >= 5:
+        status, label = "strong", "Forte candidato: o fundo pode já ter acontecido"
+    elif evidence_passed == 4:
+        status, label = "probable", "Candidato relevante, ainda em confirmação"
+    else:
+        status, label = "uncertain", "Ainda não há evidência suficiente"
+
+    return {
+        "status": status,
+        "label": label,
+        "evidence": evidence,
+        "evidence_passed": evidence_passed,
+        "evidence_total": len(evidence),
+        "top_date": pd.Timestamp(top["data"]),
+        "top_price": float(top["preco"]),
+        "candidate_date": pd.Timestamp(candidate["data"]),
+        "candidate_price": candidate_price,
+        "candidate_indicator_date": pd.Timestamp(nearest["data"]),
+        "candidate_score": candidate_score,
+        "candidate_coverage": candidate_coverage,
+        "current_date": pd.Timestamp(current["data"]),
+        "current_price": current_price,
+        "rebound_pct": float(rebound_pct),
+        "drawdown_pct": float(drawdown_pct),
+        "days_since": days_since,
+        "observation_coverage": float(observation_coverage),
+        "sma50": sma50,
+        "sma200": sma200,
+    }
 
 
 def classify(score: float | None, coverage: float) -> tuple[str, str]:

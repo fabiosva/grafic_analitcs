@@ -9,8 +9,9 @@ import requests
 import streamlit as st
 
 from analytics import (
-    INDICATORS, NEXT_HALVING_ESTIMATE, NEXT_TOP_WINDOW, build_cycle_projection, build_cycle_repeat,
-    build_signals, classify, data_health, historical_analogs, latest_value, models_consensus, pnl_regime,
+    INDICATORS, NEXT_HALVING_ESTIMATE, NEXT_TOP_WINDOW, assess_cycle_bottom, build_cycle_projection,
+    build_cycle_repeat, build_signals, classify, data_health, historical_analogs,
+    indicator_bottom_events, latest_value, models_consensus, pnl_regime, prepare_signal_history,
     purchase_readiness, score_calibration, simulate_dca, simulate_exits, stress_fundo_mais_baixo,
 )
 from crypto_scanner_tab import render_crypto_scanner_tab
@@ -131,6 +132,36 @@ def load_cycle_prices():
 
 
 @st.cache_data(ttl=3600)
+def load_recent_coinbase_prices():
+    """Completa eventuais buracos recentes da serie longa com fechamentos BTC-USD."""
+    try:
+        end = pd.Timestamp.now(tz="UTC").normalize() + pd.Timedelta(days=1)
+        start = end - pd.Timedelta(days=299)
+        response = requests.get(
+            "https://api.exchange.coinbase.com/products/BTC-USD/candles",
+            params={
+                "granularity": 86400,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+            },
+            headers={"User-Agent": "btc-bottom-lab"},
+            timeout=15,
+        )
+        response.raise_for_status()
+        rows = [
+            {
+                "data": pd.to_datetime(int(candle[0]), unit="s", utc=True).tz_localize(None),
+                "preco": float(candle[4]),
+            }
+            for candle in response.json()
+            if len(candle) >= 5
+        ]
+        return pd.DataFrame(rows)
+    except (requests.RequestException, TypeError, ValueError):
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=3600)
 def load_usd_brl():
     try:
         response = requests.get("https://api.coinbase.com/v2/exchange-rates?currency=USD", timeout=10)
@@ -234,7 +265,11 @@ def render_btc_tab():
     for column in {"preco", "realized_price", "sma200", *INDICATORS.keys()}.intersection(df.columns):
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
-    signals, composite, coverage = build_signals(df)
+    # Os indicadores on-chain extras são coletados em rodízio. Usa a última
+    # observação apenas durante sua janela de validade; o histórico bruto fica
+    # intacto para que a idade do dado continue auditável.
+    signal_df = prepare_signal_history(df)
+    signals, composite, coverage = build_signals(signal_df)
     df["confluencia"] = composite
     df["cobertura"] = coverage
     last = df.iloc[-1]
@@ -256,9 +291,24 @@ def render_btc_tab():
     daily_delta = confirmation_today - previous_confirmation
 
     cycle_prices = load_cycle_prices()
+    recent_prices = load_recent_coinbase_prices()
+    if not cycle_prices.empty:
+        # O arquivo longo pode terminar um dia antes da coleta diaria. Une as
+        # fontes para que preco atual, medias e contagens usem a mesma data.
+        # Nos dias duplicados, preserva a serie longa (fechamento Coin Metrics);
+        # Coinbase preenche apenas buracos e a coleta diaria acrescenta hoje.
+        cycle_input = pd.concat(
+            [recent_prices, df[["data", "preco"]], cycle_prices], ignore_index=True
+        )
+        cycle_input["data"] = pd.to_datetime(cycle_input["data"], errors="coerce")
+        cycle_input["preco"] = pd.to_numeric(cycle_input["preco"], errors="coerce")
+        cycle_input = cycle_input.dropna().drop_duplicates("data", keep="last").sort_values("data")
+    else:
+        cycle_input = pd.concat([recent_prices, df[["data", "preco"]]], ignore_index=True)
     try:
-        projection = build_cycle_projection(cycle_prices if not cycle_prices.empty else df)
-        cycle_repeat = build_cycle_repeat(cycle_prices if not cycle_prices.empty else df)
+        projection = build_cycle_projection(cycle_input)
+        cycle_repeat = build_cycle_repeat(cycle_input)
+        bottom_assessment = assess_cycle_bottom(signal_df, cycle_input)
     except ValueError:
         st.error(
             "Faltou histórico de preço para calcular o período provável do fundo. "
@@ -285,6 +335,8 @@ def render_btc_tab():
         read = "Começando a ficar bom para comprar aos poucos"
     else:
         read = "Ainda não parece fundo"
+    if bottom_assessment and bottom_assessment["status"] == "strong":
+        read = "Fundo em observação — agora é fase de confirmação"
 
     delta_text = f"{daily_delta:+.1f} desde a leitura anterior" if pd.notna(daily_delta) else "sem comparação"
 
@@ -314,7 +366,95 @@ def render_btc_tab():
         },
     ))
     gauge.update_layout(height=230, margin={"l": 40, "r": 40, "t": 10, "b": 10}, paper_bgcolor="#080c14", font={"color": "#e5e7eb"})
-    st.markdown("### Velocímetro: é um bom momento pra comprar?")
+
+    st.markdown("## O fundo perto de US$ 58 mil já aconteceu?")
+    if bottom_assessment:
+        status_colors = {
+            "strong": "#22c55e", "probable": "#eab308", "uncertain": "#f97316", "new_low": "#ef4444",
+        }
+        bottom_color = status_colors[bottom_assessment["status"]]
+        inside_consensus = window_start.normalize() <= bottom_assessment["candidate_date"].normalize() <= window_end.normalize()
+        inside_halving = (
+            projection["halving"]["start"].normalize()
+            <= bottom_assessment["candidate_date"].normalize()
+            <= projection["halving"]["end"].normalize()
+        )
+        if inside_consensus:
+            calendar_text = "Ele ocorreu dentro da interseção dos dois relógios históricos."
+        elif inside_halving:
+            calendar_text = (
+                "Ele ocorreu dentro da faixa ampla calculada pelo halving, antes da faixa mais tardia do relógio pós-topo."
+            )
+        else:
+            calendar_text = "Ele ocorreu fora das faixas de calendário; por isso o preço e os indicadores precisam pesar mais."
+        st.markdown(
+            f'<div class="hero" style="border-color:{bottom_color}">'
+            f'<div class="eyebrow">Leitura retrospectiva do ciclo atual</div>'
+            f'<h1 style="color:{bottom_color};margin:.45rem 0">{bottom_assessment["label"]}</h1>'
+            f'<div class="muted">O menor fechamento depois do topo foi US$ {bottom_assessment["candidate_price"]:,.0f} '
+            f'em {bottom_assessment["candidate_date"]:%d/%m/%Y}. {calendar_text}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        b1, b2, b3, b4 = st.columns(4)
+        b1.metric("Candidato a fundo", f'US$ {bottom_assessment["candidate_price"]:,.0f}')
+        b1.caption(bottom_assessment["candidate_date"].strftime("Fechamento de %d/%m/%Y"))
+        b2.metric("Recuperação desde lá", f'{bottom_assessment["rebound_pct"]:+.1f}%')
+        b3.metric("Dias sem fechar abaixo", str(bottom_assessment["days_since"]))
+        b3.caption(f'{bottom_assessment["observation_coverage"]:.0f}% dos fechamentos observados')
+        b4.metric("Evidências a favor", f'{bottom_assessment["evidence_passed"]}/{bottom_assessment["evidence_total"]}')
+        b4.caption("Contagem de testes, não probabilidade")
+
+        if bottom_assessment["status"] == "strong":
+            st.success(
+                "Minha leitura: sim, US$ 58 mil é o candidato mais forte a fundo deste ciclo até agora. "
+                "A nota estava alta no mínimo, houve capitulação e o preço recuperou as médias de 50 e 200 dias. "
+                "Isso não torna o fundo definitivo: um novo fechamento abaixo desse nível invalida a hipótese."
+            )
+        elif bottom_assessment["status"] in {"probable", "uncertain"}:
+            st.warning(
+                "Ainda faltam confirmações para tratar esse preço como fundo do ciclo. A tabela abaixo mostra exatamente o que falta."
+            )
+
+        with st.expander("Por que o painel considera — ou não — que o fundo já passou"):
+            evidence_rows = [
+                {
+                    "Teste": item["name"],
+                    "Resultado": "✅ Confirmou" if item["passed"] else "⏳ Ainda não",
+                    "Dado observado": item["detail"],
+                }
+                for item in bottom_assessment["evidence"]
+            ]
+            st.dataframe(pd.DataFrame(evidence_rows), hide_index=True, width="stretch")
+            st.caption(
+                "O painel trabalha com fechamentos diários. Uma mínima intradiária pode ser um pouco menor. "
+                "'Forte candidato' significa evidência acumulada; nenhum método consegue declarar o fundo definitivo em tempo real."
+            )
+
+        invalidation = bottom_assessment["candidate_price"]
+        continuation = max(bottom_assessment["current_price"], float(
+            cycle_input.assign(
+                data=lambda x: pd.to_datetime(x["data"], errors="coerce"),
+                preco=lambda x: pd.to_numeric(x["preco"], errors="coerce"),
+            ).loc[lambda x: x["data"] >= bottom_assessment["candidate_date"], "preco"].max()
+        ))
+        s1, s2 = st.columns(2)
+        with s1:
+            st.markdown(
+                f'<div class="window-card"><div class="eyebrow">Se US$ 58 mil foi o fundo</div>'
+                f'<div class="window-date">Próximo teste: US$ {continuation:,.0f}</div>'
+                f'<div class="muted">Romper a máxima formada depois do fundo reforça a continuação da recuperação. '
+                f'Recuos acima das médias não anulam o cenário.</div></div>', unsafe_allow_html=True,
+            )
+        with s2:
+            st.markdown(
+                f'<div class="window-card" style="border-color:#ef4444"><div class="eyebrow" style="color:#ef4444">Se ainda falta outro fundo</div>'
+                f'<div class="window-date">Invalida abaixo de US$ {invalidation:,.0f}</div>'
+                f'<div class="muted">Um fechamento diário abaixo do candidato cria um novo mínimo e obriga o painel a recalcular tudo.</div></div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("### O mercado parece estar fazendo fundo exatamente hoje?")
     st.plotly_chart(gauge, width="stretch")
     st.markdown(
         f"<div style='text-align:center;font-size:1.15rem;font-weight:800;color:{gauge_color};margin-top:-8px'>{gauge_label}</div>",
@@ -323,7 +463,8 @@ def render_btc_tab():
     st.caption(
         f"Combina os {len(INDICATORS)} indicadores do painel numa nota só, cada um com seu peso "
         f"(cobertura na última leitura: {coverage_now:.0f}% dos dados disponíveis). Quanto mais alto, mais parecido "
-        "com momentos históricos de fundo — não é garantia de nada, é confluência de sinais."
+        "o dia de hoje está com momentos históricos de fundo. Depois que o preço reage, essa nota normalmente cai; "
+        "isso não significa que o fundo anterior deixou de existir."
     )
 
     st.markdown(f"""
@@ -373,11 +514,59 @@ def render_btc_tab():
     if dataset_age_days > 2:
         alertas = [("🔴", f"Leitura geral vencida há {dataset_age_days} dias. Os demais alertas ficam suspensos até a próxima coleta válida.")]
 
+    cycle_start = bottom_assessment["top_date"] if bottom_assessment else pd.Timestamp("2025-01-01")
+    bottom_events = indicator_bottom_events(signals, signal_df["data"], since=cycle_start)
+    active_events = [event for event in bottom_events if event["status"] == "active"]
+    past_events = [event for event in bottom_events if event["status"] == "already_hit"]
+    stale_events = [event for event in bottom_events if event["status"] == "stale_after_hit"]
+    if dataset_age_days <= 2 and (active_events or past_events or stale_events):
+        alertas.append((
+            "🟢",
+            f"{len(active_events)} indicadores estão na zona histórica de fundo agora e "
+            f"{len(past_events)} já passaram por ela neste ciclo"
+            + (f"; {len(stale_events)} aguardam atualização." if stale_events else "."),
+        ))
+
     if alertas:
         st.markdown("##### Alertas da leitura")
         for emoji, texto in alertas:
             st.markdown(f"{emoji} {texto}")
         st.caption("Alertas aparecem só quando algo muda de faixa, a confirmação fica muito forte, há divergência entre nota e preço, ou um dado crítico está vencido.")
+
+    st.subheader("Quais indicadores já bateram sinal de fundo?")
+    st.caption(
+        "Aqui, ‘bateu’ significa que a nota daquele indicador chegou a 75/100 desde o topo do ciclo. "
+        "É um sinal histórico do indicador — não prova, sozinho, que o menor preço definitivo do BTC já passou."
+    )
+    status_copy = {
+        "active": "🟢 NA ZONA AGORA",
+        "already_hit": "✅ JÁ BATEU E SAIU",
+        "stale_after_hit": "🕒 JÁ BATEU · DADO PENDENTE",
+        "not_hit": "⚪ AINDA NÃO BATEU",
+        "no_data": "⚫ SEM DADO",
+    }
+    event_rows = []
+    for event in sorted(
+        bottom_events,
+        key=lambda item: ({"active": 0, "already_hit": 1, "stale_after_hit": 2, "not_hit": 3, "no_data": 4}[item["status"]], -item.get("peak_score", -1)),
+    ):
+        event_rows.append({
+            "Indicador": plain(event["indicator"]),
+            "Sinal neste ciclo": status_copy[event["status"]],
+            "Entrou na zona em": event["triggered_at"].strftime("%d/%m/%Y") if event["triggered_at"] is not None else "—",
+            "Nota hoje": f"{event['current_score']:.0f}/100" if pd.notna(event["current_score"]) else "N/D",
+            "Maior nota": f"{event['peak_score']:.0f}/100" if pd.notna(event["peak_score"]) else "N/D",
+        })
+    e1, e2, e3, e4 = st.columns(4)
+    e1.metric("Na zona agora", len(active_events))
+    e2.metric("Já bateram e saíram", len(past_events))
+    e3.metric("Atualização pendente", len(stale_events))
+    e4.metric("Ainda não bateram", sum(event["status"] == "not_hit" for event in bottom_events))
+    st.dataframe(pd.DataFrame(event_rows), hide_index=True, width="stretch")
+    st.caption(
+        "Os indicadores lentos coletados em rodízio preservam o último valor por no máximo 10 dias. "
+        "Depois disso voltam para N/D; a seção de qualidade dos dados mostra a data real de cada observação."
+    )
 
     current = signals.iloc[-1].copy()
     current["Preço vs média de 2 anos"] = cycle_repeat["investor_score"]
@@ -427,12 +616,20 @@ def render_btc_tab():
         weakest = current.dropna().sort_values().head(2)
         strong_text = ", ".join(plain(name) for name in strongest.index)
         weak_text = " e ".join(plain(name) for name in weakest.index)
-        st.markdown(
-            f"**Hoje ainda não dá para dizer que o fundo chegou.** O preço já está em faixa parecida com a "
-            f"de fundos anteriores ({structural_score:.0f}/100), mas os sinais que mostram a virada acontecendo "
-            f"ainda estão fracos ({tactical_score:.0f}/100). "
-            f"O que já está a favor: **{strong_text}**. O que ainda falta: **{weak_text}**."
-        )
+        if bottom_assessment and bottom_assessment["status"] == "strong":
+            st.markdown(
+                f"**O fundo perto de US$ {bottom_assessment['candidate_price']:,.0f} pode já ter acontecido.** "
+                f"Naquele dia, a confluência era {bottom_assessment['candidate_score']:.0f}/100; desde então, "
+                f"o preço reagiu {bottom_assessment['rebound_pct']:+.1f}% e recuperou as médias principais. "
+                f"A nota de fundo de hoje estar menor é normal depois da reação. Agora o painel acompanha se a "
+                f"recuperação se sustenta. A favor hoje: **{strong_text}**. Ponto fraco: **{weak_text}**."
+            )
+        else:
+            st.markdown(
+                f"**Ainda não dá para dizer que o fundo chegou.** O preço está com nota estrutural de "
+                f"{structural_score:.0f}/100 e os sinais de virada estão em {tactical_score:.0f}/100. "
+                f"A favor: **{strong_text}**. O que ainda falta: **{weak_text}**."
+            )
         if len(signals) > 1:
             changes = (signals.iloc[-1] - signals.iloc[-2]).dropna().sort_values(key=abs, ascending=False).head(3)
             change_lines = []
@@ -442,13 +639,26 @@ def render_btc_tab():
             st.caption("O que mudou de ontem para hoje: " + " · ".join(change_lines))
 
     with summary_right:
-        timing = f"Ainda faltam {days_to_window} dias para começar." if days_to_window > 0 else "Estamos dentro desse período agora."
+        if bottom_assessment and bottom_assessment["status"] == "strong":
+            window_eyebrow = "Calendário · cenário alternativo"
+            timing = "Só ganha força se o mercado perder o fundo observado."
+            window_detail = (
+                f"O modelo do halving já incluía {bottom_assessment['candidate_date']:%d/%m}; "
+                "o relógio pós-topo aponta mais tarde. Preço e indicadores têm prioridade sobre a data isolada."
+            )
+        else:
+            window_eyebrow = "Período em que o fundo costuma aparecer"
+            timing = f"Ainda faltam {days_to_window} dias para começar." if days_to_window > 0 else "Estamos dentro desse período agora."
+            window_detail = (
+                "Vem de duas contas: quanto tempo passou desde o último halving e quanto tempo costuma passar depois do topo. "
+                "É só uma referência — o fundo pode vir antes ou depois disso."
+            )
         st.markdown(f"""
     <div class="window-card">
-      <div class="eyebrow">Período em que o fundo costuma aparecer</div>
+      <div class="eyebrow">{window_eyebrow}</div>
       <div class="window-date">{window_start:%d/%m} — {window_end:%d/%m/%Y}</div>
       <div>{timing}</div>
-      <div class="muted" style="margin-top:8px">Vem de duas contas: quanto tempo passou desde o último halving e quanto tempo costuma passar depois do topo. É só uma referência — o fundo pode vir antes ou depois disso.</div>
+      <div class="muted" style="margin-top:8px">{window_detail}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -754,11 +964,21 @@ def render_btc_tab():
     clock = projection["clock_1064_365"]
     c1, c2, c3, c4 = st.columns(4)
     with c1:
+        clock_status = (
+            "● CENÁRIO ALTERNATIVO"
+            if bottom_assessment and bottom_assessment["status"] == "strong"
+            else f'● FALTAM {clock["days_to_bottom"]} DIAS'
+        )
+        clock_detail = (
+            "Só ganha importância se o mercado perder o fundo observado. Não substitui o sinal de US$ 58 mil."
+            if bottom_assessment and bottom_assessment["status"] == "strong"
+            else "Não estima preço; mede 365 dias desde o topo provisório."
+        )
         st.markdown(
             f'<div class="lens"><div class="lens-title">Relógio 1064/365 · somente data</div>'
             f'<div class="lens-score">{clock["bottom"]:%d/%m/%Y}</div>'
-            f'<div style="color:#f59e0b;font-weight:800;margin-bottom:7px">● FALTAM {clock["days_to_bottom"]} DIAS</div>'
-            f'<div class="lens-text">Não estima preço; mede 365 dias desde o topo provisório.</div></div>',
+            f'<div style="color:#f59e0b;font-weight:800;margin-bottom:7px">{clock_status}</div>'
+            f'<div class="lens-text">{clock_detail}</div></div>',
             unsafe_allow_html=True,
         )
     with c2:
@@ -867,6 +1087,12 @@ def render_btc_tab():
         timeline.add_vrect(x0=projection["top"]["start"], x1=projection["top"]["end"], fillcolor="#ef4444", opacity=.14, line_width=0, annotation_text="topo", annotation_position="top right", annotation_font_size=10, annotation_yshift=16)
         timeline.add_vrect(x0=window_start, x1=window_end, fillcolor="#2563eb", opacity=.28, line_width=0, annotation_text="faixa provável", annotation_position="bottom", annotation_font_size=10, annotation_yshift=0)
         timeline.add_vline(x=projection["last_date"], line_color="#64748b", line_dash="dot", annotation_text="hoje", annotation_position="top", annotation_textangle=-90, annotation_font_size=10, annotation_yshift=32)
+        if bottom_assessment:
+            timeline.add_annotation(
+                x=bottom_assessment["candidate_date"], y=bottom_assessment["candidate_price"],
+                text=f'candidato a fundo<br>US$ {bottom_assessment["candidate_price"]:,.0f}',
+                showarrow=True, arrowcolor="#22c55e", font={"color": "#22c55e"},
+            )
         timeline.add_vline(x=projection["cycle_57w"], line_color="#3b82f6", line_dash="dot", annotation_text="57 sem.", annotation_position="bottom", annotation_textangle=-90, annotation_font_size=10, annotation_yshift=-18)
         if show_smas:
             colors = {50:"#ef3340",100:"#22c55e",200:"#eab308"}
@@ -877,7 +1103,7 @@ def render_btc_tab():
                 timeline.add_trace(go.Scatter(x=future.index, y=future.values, showlegend=False, line={"color":colors[period],"width":2,"dash":"dash"}))
         timeline.update_xaxes(range=[history["data"].iloc[0], projection["cycle_57w"] + pd.Timedelta(days=35)])
         timeline.update_yaxes(type="log", title="Preço do BTC", automargin=True, dtick=1, tickformat="~s")
-        timeline.update_layout(title="Preço do BTC ao longo do tempo, com a janela provável do próximo fundo", height=520, margin={"l":20,"r":20,"t":60,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
+        timeline.update_layout(title="Preço do BTC, janela histórica e candidato a fundo observado", height=520, margin={"l":20,"r":20,"t":60,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
         st.plotly_chart(timeline, width="stretch")
         st.caption(
             "A faixa azul é onde as duas contas concordam — o período mais provável. "
@@ -999,11 +1225,16 @@ def render_btc_tab():
         clock_chart.add_vline(x=projection["clock_1064_365"]["next_top"], line_color="#ef4444", line_dash="dash", annotation_text="topo", annotation_position="top right", annotation_textangle=-90, annotation_font_size=10, annotation_yshift=-15)
         clock_chart.update_yaxes(type="log", title="Preço do BTC", automargin=True, dtick=1, tickformat="~s")
         clock_chart.update_xaxes(range=[pd.Timestamp("2014-01-01"), projection["clock_1064_365"]["next_top"] + pd.Timedelta(days=60)])
-        clock_chart.update_layout(title="Relógio de 1.064 dias (fundo→topo) e 365 dias (topo→fundo)", height=540, margin={"l":20,"r":20,"t":50,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
+        clock_title = (
+            "Relógio 1064/365 · cenário alternativo se o fundo observado falhar"
+            if bottom_assessment and bottom_assessment["status"] == "strong"
+            else "Relógio de 1.064 dias (fundo→topo) e 365 dias (topo→fundo)"
+        )
+        clock_chart.update_layout(title=clock_title, height=540, margin={"l":20,"r":20,"t":50,"b":20}, paper_bgcolor="#080c14", plot_bgcolor="#0b1220", font={"color":"#cbd5e1"}, hovermode="x unified", legend={"orientation":"h","y":1.08})
         st.plotly_chart(clock_chart, width="stretch")
         st.info(
             "Esse relógio usa somente datas. O topo atual é provisório: se surgir uma máxima mais alta, a contagem de 365 dias reinicia. "
-            "Ele não prevê o preço do fundo nem entra novamente na nota, pois a janela pós-topo já considera esse tipo de evidência."
+            "Ele não prevê preço e não pode apagar um fundo observado que já reuniu confirmações."
         )
 
     with tab_investor:
