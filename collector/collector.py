@@ -6,6 +6,7 @@ Fontes 100% gratuitas: bitcoin-data.com, alternative.me, coinbase
 import requests
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone, timedelta
@@ -33,12 +34,28 @@ FUNDOS_POS_HALVING = ["2015-01-14", "2018-12-15", "2022-11-21"]
 # indicadores que o Bitcoin Magazine Pro publica, mas mudam devagar - nao
 # faz diferenca busca-los todo dia.
 #
-# O plano gratuito da bitcoin-data.com da 10 requisicoes por hora e 15 por
-# dia, e as metricas principais ja consomem 8. Por isso estes entram em
+# O plano gratuito da bitcoin-data.com permite 8 requisicoes por hora. As
+# metricas principais consomem 6; por isso estes entram em
 # rodizio: EXTRAS_POR_DIA por vez, priorizando sempre os dados mais antigos.
 # Quando um deles nao e buscado (ou a API recusa), o painel simplesmente
 # mantem o ultimo valor conhecido, que para modelos assim e suficiente.
 EXTRAS = [
+    ("profit-loss", {
+        "supply_in_profit_pct": (
+            "percentSupplyInProfit", "supplyInProfitPct", "pctSupplyInProfit",
+            "profitPct", "profitLoss",
+        ),
+    }),
+    ("etf-btc-total", {
+        "etf_btc_total": ("etfBtcTotal", "totalBtc", "btcTotal", "total"),
+    }),
+    ("etf-flow-btc", {
+        "etf_flow_btc": ("etfFlowBtc", "netFlowBtc", "totalFlow", "total", "__sum_numeric__"),
+    }),
+    ("btc-issued", {"btc_issued": ("btcIssued", "issued", "value")}),
+    ("thermo-cap", {"thermo_cap": "thermoCap"}),
+    ("reserve-risk", {"reserve_risk": "reserveRisk"}),
+    ("rhodl-ratio", {"rhodl_ratio": "rhodlRatio"}),
     ("balanced-price", {"balanced_price": "balancedPrice"}),
     ("terminal-price", {"terminal_price": "terminalPrice"}),
     ("lth-realized-price", {"lth_realized_price": "lthRealizedPrice"}),
@@ -47,10 +64,8 @@ EXTRAS = [
         "gm_sma350": "sma350", "gm_x16": "x16", "gm_x2": "x2", "gm_x2618": "x2618",
     }),
     ("sth-mvrv", {"sth_mvrv": "sthMvrv"}),
-    ("sth-mvrv-momentum", {"sth_mvrv_momentum": "sthMvrvMomentum"}),
     ("vdd-multiple", {"vdd_multiple": "vddMultiple"}),
     ("aviv", {"aviv": "aviv"}),
-    ("sth-lth-ratio", {"sth_lth_ratio": "sthLthRatio"}),
     ("sth-realized-price", {"sth_realized_price": "sthRealizedPrice"}),
     ("percent-lth-in-profit", {"percent_lth_in_profit": "percentLthInProfit"}),
     ("lth-sopr", {"lth_sopr": "lthSopr"}),
@@ -69,6 +84,26 @@ def _num(valor):
         return float(valor)
     except (TypeError, ValueError):
         return None
+
+
+def _extra_value(row: dict, field_spec):
+    """Aceita aliases porque alguns endpoints mudaram nomes de campo."""
+    candidates = field_spec if isinstance(field_spec, (tuple, list)) else (field_spec,)
+    for candidate in candidates:
+        if candidate == "__sum_numeric__":
+            values = []
+            for key, value in row.items():
+                normalized = str(key).lower()
+                if normalized in {"d", "date", "data", "unixts", "timestamp"}:
+                    continue
+                number = _num(value)
+                if number is not None:
+                    values.append(number)
+            return sum(values) if values else None
+        number = _num(row.get(candidate))
+        if number is not None:
+            return number
+    return None
 
 
 def fetch_row(endpoint: str):
@@ -121,9 +156,9 @@ def coletar_extras(agora: datetime) -> dict:
         if not linha:
             continue
         for coluna, campo in mapa.items():
-            bruto = linha.get(campo)
+            bruto = linha.get(campo) if isinstance(campo, str) else None
             # hashribbons devolve o rotulo "Up"/"Down"; o resto e numerico.
-            resultado[coluna] = bruto if coluna == "hashribbons" else _num(bruto)
+            resultado[coluna] = bruto if coluna == "hashribbons" else _extra_value(linha, campo)
     return resultado
 
 
@@ -311,11 +346,23 @@ def salvar_supabase(registro: dict):
         "Prefer": "resolution=merge-duplicates",
     }
     url = f"{SUPABASE_URL}/rest/v1/bottom_indicators"
-    r = requests.post(url, headers=headers, json=registro, timeout=15)
-    if r.status_code not in (200, 201):
+    payload = dict(registro)
+    # Novos campos chegam primeiro ao cache local. Enquanto a migration SQL
+    # ainda nao foi aplicada, remove somente as colunas desconhecidas e salva
+    # o restante; assim uma melhoria do painel nunca interrompe a coleta base.
+    for _ in range(12):
+        r = requests.post(url, headers=headers, json=payload, timeout=15)
+        if r.status_code in (200, 201):
+            print("Salvo no Supabase com sucesso.")
+            return
+        missing = re.search(r"Could not find the '([^']+)' column", r.text)
+        if r.status_code == 400 and missing and missing.group(1) in payload:
+            removed = missing.group(1)
+            payload.pop(removed)
+            print(f"Supabase ainda sem a coluna {removed}; mantendo-a apenas no cache local.")
+            continue
         print(f"Erro Supabase: {r.status_code} {r.text}")
-    else:
-        print("Salvo no Supabase com sucesso.")
+        return
 
 
 def fetch_history_df():
@@ -472,8 +519,6 @@ def main():
         "sopr": fetch_latest("sopr", "sopr"),
         "realized_price": fetch_latest("realized-price", "realizedPrice"),
         "puell_multiple": fetch_latest("puell-multiple", "puellMultiple"),
-        "reserve_risk": fetch_latest("reserve-risk", "reserveRisk"),
-        "rhodl_ratio": fetch_latest("rhodl-ratio", "rhodlRatio"),
         "fear_greed": fetch_fear_greed(),
     }
     dados.update(fetch_derivativos())

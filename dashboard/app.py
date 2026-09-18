@@ -1,5 +1,6 @@
 """Painel de Fundo do BTC: uma leitura diária, em português simples, de quão perto estamos de um fundo."""
 from pathlib import Path
+from io import StringIO
 import json
 import os
 
@@ -9,10 +10,11 @@ import requests
 import streamlit as st
 
 from analytics import (
-    INDICATORS, NEXT_HALVING_ESTIMATE, NEXT_TOP_WINDOW, assess_cycle_bottom, build_cycle_projection,
+    INDICATORS, NEXT_HALVING_ESTIMATE, NEXT_TOP_WINDOW, assess_cycle_bottom, bitbo_confirmation_summary, build_cycle_projection,
     build_cycle_repeat, build_signals, classify, data_health, historical_analogs,
     indicator_bottom_events, latest_value, models_consensus, pnl_regime, prepare_signal_history,
     purchase_readiness, score_calibration, simulate_dca, simulate_exits, stress_fundo_mais_baixo,
+    weekly_market_filter,
 )
 from crypto_scanner_tab import render_crypto_scanner_tab
 
@@ -88,6 +90,10 @@ SUPABASE_KEY = get_config("SUPABASE_KEY")
 
 @st.cache_data(ttl=900)
 def load_history():
+    local = pd.DataFrame()
+    if LOCAL_HISTORY.exists():
+        rows = json.loads(LOCAL_HISTORY.read_text(encoding="utf-8"))
+        local = pd.DataFrame(rows)
     if SUPABASE_URL and SUPABASE_KEY:
         headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
         try:
@@ -96,12 +102,20 @@ def load_history():
                 headers=headers, timeout=15,
             )
             response.raise_for_status()
-            return pd.DataFrame(response.json()), "Supabase"
+            remote = pd.DataFrame(response.json())
+            if not local.empty and "data" in remote and "data" in local:
+                # O cache do repositório pode conter colunas novas antes da
+                # migration do Supabase. Mescla célula a célula sem apagar os
+                # dados históricos já existentes na nuvem.
+                remote = remote.set_index("data")
+                local = local.set_index("data")
+                merged = local.combine_first(remote).reset_index()
+                return merged, "Supabase + cache local"
+            return remote, "Supabase"
         except requests.RequestException:
             pass
-    if LOCAL_HISTORY.exists():
-        rows = json.loads(LOCAL_HISTORY.read_text(encoding="utf-8"))
-        return pd.DataFrame(rows), "histórico local"
+    if not local.empty:
+        return local, "histórico local"
     if LOCAL_DATA.exists():
         row = json.loads(LOCAL_DATA.read_text(encoding="utf-8"))
         return pd.DataFrame([row]), "arquivo local"
@@ -169,6 +183,41 @@ def load_usd_brl():
         return float(response.json()["data"]["rates"]["BRL"]), "Coinbase"
     except (requests.RequestException, KeyError, ValueError):
         return 5.50, "valor de segurança"
+
+
+@st.cache_data(ttl=3600)
+def load_macro_context():
+    """Contexto de liquidez; não entra na nota estrutural de fundo."""
+    start = (pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=450)).strftime("%Y-%m-%d")
+    specs = {
+        "us10y": ("DGS10", "Juro dos EUA · 10 anos", 20),
+        "vix": ("VIXCLS", "VIX", 20),
+        "dollar": ("DTWEXBGS", "Dólar amplo", 20),
+        "m2": ("M2SL", "M2 dos EUA", 3),
+    }
+    result = {}
+    for key, (series_id, label, lookback) in specs.items():
+        try:
+            response = requests.get(
+                "https://fred.stlouisfed.org/graph/fredgraph.csv",
+                params={"id": series_id, "cosd": start}, timeout=20,
+            )
+            response.raise_for_status()
+            frame = pd.read_csv(StringIO(response.text))
+            values = pd.to_numeric(frame[series_id], errors="coerce").dropna()
+            if values.empty:
+                continue
+            previous = float(values.iloc[-min(lookback + 1, len(values))])
+            current = float(values.iloc[-1])
+            result[key] = {
+                "label": label,
+                "value": current,
+                "change_pct": (current / previous - 1) * 100 if previous else None,
+                "date": pd.to_datetime(frame.loc[values.index[-1], "observation_date"]),
+            }
+        except (requests.RequestException, KeyError, ValueError, pd.errors.ParserError):
+            continue
+    return result
 
 
 # Nome tecnico -> como explicariamos para alguem que nunca viu o indicador.
@@ -608,6 +657,120 @@ def render_btc_tab():
                 f'<div class="lens-scale">{escala_baixa}<br>{escala_alta}</div></div>',
                 unsafe_allow_html=True,
             )
+
+    bitbo = bitbo_confirmation_summary(signal_df)
+    macro = load_macro_context()
+    weekly = weekly_market_filter(cycle_input)
+    price_now, _ = latest_value(df, "preco")
+    sma200_now, _ = latest_value(df, "sma200")
+    hash_state, _ = latest_value(df, "hashribbons")
+    funding_now, _ = latest_value(df, "funding_rate")
+
+    turn_checks = []
+    if bitbo.get("marp50_momentum") is not None:
+        turn_checks.append((
+            bitbo["marp50_bullish"], "50MARP",
+            "custo realizado ganhando força" if bitbo["marp50_bullish"] else "momentum ainda enfraquecendo",
+        ))
+    if bitbo.get("mvrv_spread") is not None:
+        turn_checks.append((
+            bitbo["mvrv_cross_confirmed"], "MVRV de holders",
+            "cruzamento histórico de fim de baixa" if bitbo["mvrv_cross_confirmed"] else "ainda sem cruzamento",
+        ))
+    if price_now is not None and sma200_now is not None:
+        turn_checks.append((
+            price_now > sma200_now, "Média de 200 dias",
+            "preço recuperou a média" if price_now > sma200_now else "preço continua abaixo",
+        ))
+    if hash_state in {"Up", "Down"}:
+        turn_checks.append((
+            hash_state == "Up", "Hash Ribbons",
+            "mineradores se recuperando" if hash_state == "Up" else "capitulação ainda ativa",
+        ))
+    if weekly.get("sma50") is not None:
+        above_weekly_50 = weekly["price"] > weekly["sma50"]
+        provisional = " · semana aberta" if not weekly.get("week_closed") else ""
+        turn_checks.append((
+            above_weekly_50, "SMA 50 semanal",
+            ("preço acima" if above_weekly_50 else "preço abaixo")
+            + f" · US$ {weekly['sma50']:,.0f}{provisional}",
+        ))
+
+    wind_checks = []
+    if "us10y" in macro:
+        change = macro["us10y"]["change_pct"]
+        wind_checks.append((change is not None and change <= 0, "Juro de 10 anos", f"{macro['us10y']['value']:.2f}% · {change:+.1f}% no período"))
+    if "dollar" in macro:
+        change = macro["dollar"]["change_pct"]
+        wind_checks.append((change is not None and change <= 0, "Dólar amplo", f"{change:+.1f}% no período"))
+    if "vix" in macro:
+        value = macro["vix"]["value"]
+        wind_checks.append((value < 25, "VIX", f"{value:.1f} · {'risco controlado' if value < 25 else 'aversão a risco alta'}"))
+    if "m2" in macro:
+        change = macro["m2"]["change_pct"]
+        wind_checks.append((change is not None and change > 0, "Liquidez M2", f"{change:+.1f}% em cerca de 3 meses"))
+    if bitbo.get("etf_flow_btc") is not None:
+        flow = bitbo["etf_flow_btc"]
+        wind_checks.append((flow > 0, "Fluxo diário dos ETFs", f"{flow:+,.0f} BTC"))
+    if funding_now is not None:
+        funding = float(funding_now)
+        wind_checks.append((abs(funding) <= 0.01, "Funding", f"{funding:+.4f}% · {'normal' if abs(funding) <= 0.01 else 'alavancagem elevada'}"))
+    if weekly.get("stoch_k") is not None:
+        weekly_not_stretched = weekly["stoch_k"] < 80
+        wind_checks.append((
+            weekly_not_stretched, "StochRSI semanal",
+            f"{weekly['stoch_k']:.0f}/{weekly['stoch_d']:.0f} · "
+            + ("sem sobrecompra" if weekly_not_stretched else "esticado acima de 80"),
+        ))
+
+    def checks_html(checks):
+        if not checks:
+            return '<div class="muted">Dados insuficientes.</div>'
+        return "".join(
+            f'<div class="indicator-row"><span>{"✅" if passed else "⚠️"} {name}</span>'
+            f'<span style="color:{"#22c55e" if passed else "#f59e0b"}">{detail}</span></div>'
+            for passed, name, detail in checks
+        )
+
+    turn_passed = sum(passed for passed, _, _ in turn_checks)
+    wind_passed = sum(passed for passed, _, _ in wind_checks)
+    st.markdown("##### Dois filtros antes de comprar forte")
+    st.caption(
+        "O primeiro verifica se um fundo barato começou a virar. O segundo mede o ambiente das próximas semanas. "
+        "São contagens de evidências, não probabilidades, e ficam fora da nota estrutural de fundo."
+    )
+    f1, f2 = st.columns(2)
+    with f1:
+        st.markdown(
+            f'<div class="bucket"><h4>O fundo começou a virar? · {turn_passed}/{len(turn_checks)}</h4>'
+            f'{checks_html(turn_checks)}</div>', unsafe_allow_html=True,
+        )
+    with f2:
+        st.markdown(
+            f'<div class="bucket"><h4>Há vento a favor nas próximas semanas? · {wind_passed}/{len(wind_checks)}</h4>'
+            f'{checks_html(wind_checks)}</div>', unsafe_allow_html=True,
+        )
+
+    supply_profit = bitbo.get("supply_in_profit_pct")
+    etf_flow = bitbo.get("etf_flow_btc")
+    thermo_multiple = bitbo.get("thermocap_multiple")
+    n1, n2, n3 = st.columns(3)
+    n1.metric(
+        "Oferta total em lucro",
+        f"{supply_profit:.1f}%" if supply_profit is not None else "N/D",
+        help="Abaixo de 50% costuma representar capitulação severa. Não confundir com LTH em lucro.",
+    )
+    n2.metric(
+        "Fluxo diário dos ETFs",
+        f"{etf_flow:+,.0f} BTC" if etf_flow is not None else "N/D",
+        help="Entrada positiva representa demanda; saída negativa representa pressão vendedora. Um único dia não define tendência.",
+    )
+    n3.metric(
+        "Thermocap Multiple",
+        f"{thermo_multiple:.1f}×" if thermo_multiple is not None else "N/D",
+        help="Valor de mercado dividido pela receita histórica acumulada dos mineradores. Usado principalmente como alerta de excesso/topo.",
+    )
+    st.caption("Fontes macro: Federal Reserve Economic Data (FRED). Métricas on-chain e ETF: bitcoin-data.com, coletadas em rodízio por causa do limite gratuito.")
 
     summary_left, summary_right = st.columns([1.35, 1])
     with summary_left:

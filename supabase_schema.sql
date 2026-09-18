@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS bottom_indicators (
     open_interest_usd NUMERIC,
     funding_rate NUMERIC,
     sth_mvrv NUMERIC,
+    lth_mvrv NUMERIC,
     sth_mvrv_momentum NUMERIC,
     vdd_multiple NUMERIC,
     aviv NUMERIC,
@@ -39,6 +40,11 @@ CREATE TABLE IF NOT EXISTS bottom_indicators (
     sth_sopr NUMERIC,
     short_term_hodler_supply_btc NUMERIC,
     supply_current NUMERIC,
+    supply_in_profit_pct NUMERIC,
+    etf_btc_total NUMERIC,
+    etf_flow_btc NUMERIC,
+    btc_issued NUMERIC,
+    thermo_cap NUMERIC,
     ultimo_halving DATE,
     dias_desde_halving INTEGER,
     fundo_estimado DATE,
@@ -51,6 +57,14 @@ CREATE TABLE IF NOT EXISTS bottom_indicators (
     classificacao TEXT,
     atualizado_em TIMESTAMPTZ
 );
+
+-- Migração idempotente para instalações que já possuem a tabela.
+ALTER TABLE bottom_indicators ADD COLUMN IF NOT EXISTS lth_mvrv NUMERIC;
+ALTER TABLE bottom_indicators ADD COLUMN IF NOT EXISTS supply_in_profit_pct NUMERIC;
+ALTER TABLE bottom_indicators ADD COLUMN IF NOT EXISTS etf_btc_total NUMERIC;
+ALTER TABLE bottom_indicators ADD COLUMN IF NOT EXISTS etf_flow_btc NUMERIC;
+ALTER TABLE bottom_indicators ADD COLUMN IF NOT EXISTS btc_issued NUMERIC;
+ALTER TABLE bottom_indicators ADD COLUMN IF NOT EXISTS thermo_cap NUMERIC;
 
 ALTER TABLE bottom_indicators ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN

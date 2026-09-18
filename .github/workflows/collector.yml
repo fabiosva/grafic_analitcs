@@ -34,6 +34,6 @@ jobs:
         run: |
           git config user.name "bot-coletor"
           git config user.email "bot@local"
-          git add collector/data/latest.json || true
+          git add collector/data/latest.json collector/data/history.json collector/data/price_history.json || true
           git diff --staged --quiet || git commit -m "Atualiza dados $(date -u +%F)"
           git push || true

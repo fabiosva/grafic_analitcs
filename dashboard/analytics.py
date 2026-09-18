@@ -48,10 +48,20 @@ INDICATORS = {
 # mudam devagar e podem usar a última observação por alguns dias, mas nunca
 # indefinidamente. Os demais indicadores precisam de observação do próprio dia.
 ROTATING_INDICATOR_MAX_AGE_DAYS = {
+    "reserve_risk": 10,
+    "rhodl_ratio": 10,
     "sth_mvrv": 10,
     "aviv": 10,
     "vdd_multiple": 10,
     "percent_lth_in_profit": 10,
+    "lth_realized_price": 10,
+    "sth_realized_price": 10,
+    "hashribbons": 10,
+    "supply_in_profit_pct": 10,
+    "etf_btc_total": 10,
+    "etf_flow_btc": 10,
+    "btc_issued": 10,
+    "thermo_cap": 10,
     "short_term_hodler_supply_btc": 10,
     "supply_current": 10,
 }
@@ -812,6 +822,120 @@ def models_consensus(modelos: dict) -> dict | None:
         "minimo": float(arr.min()),
         "maximo": float(arr.max()),
         "dispersao_pct": float((arr.max() - arr.min()) / mediana * 100) if mediana else 0.0,
+    }
+
+
+def bitbo_confirmation_summary(df: pd.DataFrame) -> dict:
+    """Calcula confirmações inspiradas nos gráficos públicos do Bitbo.
+
+    São mantidas fora da nota composta de fundo para evitar contar duas vezes
+    preço realizado, MVRV e médias móveis. A função responde uma pergunta
+    diferente: depois de ficar barato, o mercado começou a virar?
+    """
+    if df.empty:
+        return {}
+    work = df.copy()
+    dates = pd.to_datetime(work.get("data"), errors="coerce")
+
+    def numeric(column: str) -> pd.Series:
+        raw = work[column] if column in work else pd.Series(np.nan, index=work.index)
+        return pd.to_numeric(raw, errors="coerce")
+
+    price = numeric("preco")
+    realized = numeric("realized_price")
+    price_ma50 = price.rolling(50, min_periods=35).mean()
+    realized_ma50 = realized.rolling(50, min_periods=35).mean()
+    marp50 = price_ma50 / realized_ma50.replace(0, np.nan)
+    marp50_ma3 = marp50.rolling(3, min_periods=3).mean()
+    marp_momentum = marp50 - marp50_ma3
+
+    lth_realized = numeric("lth_realized_price")
+    sth_realized = numeric("sth_realized_price")
+    lth_mvrv_api = numeric("lth_mvrv")
+    lth_mvrv_derived = price / lth_realized.replace(0, np.nan)
+    lth_mvrv = lth_mvrv_api.combine_first(lth_mvrv_derived)
+    sth_mvrv_api = numeric("sth_mvrv")
+    sth_mvrv_derived = price / sth_realized.replace(0, np.nan)
+    sth_mvrv = sth_mvrv_api.combine_first(sth_mvrv_derived)
+    mvrv_spread = lth_mvrv - sth_mvrv
+    cross_entries = (mvrv_spread < 0) & (mvrv_spread.shift(1) >= 0)
+    cross_dates = dates.loc[cross_entries & dates.notna()]
+
+    supply_profit = numeric("supply_in_profit_pct")
+    supply_profit = supply_profit.where(supply_profit > 1, supply_profit * 100)
+    etf_flow = numeric("etf_flow_btc")
+    etf_total = numeric("etf_btc_total")
+    issued = numeric("btc_issued")
+    thermo_cap = numeric("thermo_cap")
+    supply = numeric("supply_current")
+    thermo_multiple = price * supply / thermo_cap.replace(0, np.nan)
+
+    def last(series: pd.Series):
+        valid = series.dropna()
+        return float(valid.iloc[-1]) if not valid.empty else None
+
+    marp_now = last(marp50)
+    marp_momentum_now = last(marp_momentum)
+    lth_now = last(lth_mvrv)
+    sth_now = last(sth_mvrv)
+    spread_now = last(mvrv_spread)
+    etf_flow_now = last(etf_flow)
+    issued_now = last(issued)
+    return {
+        "marp50": marp_now,
+        "marp50_momentum": marp_momentum_now,
+        "marp50_bullish": marp_momentum_now is not None and marp_momentum_now > 0,
+        "lth_mvrv": lth_now,
+        "sth_mvrv": sth_now,
+        "mvrv_spread": spread_now,
+        "mvrv_cross_confirmed": spread_now is not None and spread_now < 0,
+        "mvrv_cross_date": pd.Timestamp(cross_dates.iloc[-1]) if not cross_dates.empty else None,
+        "supply_in_profit_pct": last(supply_profit),
+        "etf_flow_btc": etf_flow_now,
+        "etf_btc_total": last(etf_total),
+        "btc_issued": issued_now,
+        "etf_absorption_ratio": (
+            etf_flow_now / issued_now
+            if etf_flow_now is not None and issued_now not in (None, 0)
+            else None
+        ),
+        "thermocap_multiple": last(thermo_multiple),
+    }
+
+
+def weekly_market_filter(price_df: pd.DataFrame) -> dict:
+    """Filtro semanal simples para evitar entrada forte contra resistência."""
+    if price_df.empty or not {"data", "preco"}.issubset(price_df.columns):
+        return {}
+    work = price_df[["data", "preco"]].copy()
+    work["data"] = pd.to_datetime(work["data"], errors="coerce")
+    work["preco"] = pd.to_numeric(work["preco"], errors="coerce")
+    work = work.dropna().drop_duplicates("data", keep="last").set_index("data").sort_index()
+    weekly = work["preco"].resample("W-SUN").last().dropna()
+    if len(weekly) < 50:
+        return {}
+
+    delta = weekly.diff()
+    avg_gain = delta.clip(lower=0).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean()
+    avg_loss = (-delta.clip(upper=0)).ewm(alpha=1 / 14, adjust=False, min_periods=14).mean()
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+    rsi = 100 - 100 / (1 + rs)
+    rsi_low = rsi.rolling(14, min_periods=14).min()
+    rsi_high = rsi.rolling(14, min_periods=14).max()
+    stoch = (rsi - rsi_low) / (rsi_high - rsi_low).replace(0, np.nan) * 100
+    stoch_k = stoch.rolling(3, min_periods=3).mean()
+    stoch_d = stoch_k.rolling(3, min_periods=3).mean()
+
+    as_of = work.index[-1]
+    return {
+        "as_of": pd.Timestamp(as_of),
+        "week_closed": pd.Timestamp(as_of).weekday() == 6,
+        "price": float(weekly.iloc[-1]),
+        "sma50": float(weekly.rolling(50).mean().iloc[-1]),
+        "sma100": float(weekly.rolling(100).mean().iloc[-1]) if len(weekly) >= 100 else None,
+        "sma200": float(weekly.rolling(200).mean().iloc[-1]) if len(weekly) >= 200 else None,
+        "stoch_k": float(stoch_k.iloc[-1]) if pd.notna(stoch_k.iloc[-1]) else None,
+        "stoch_d": float(stoch_d.iloc[-1]) if pd.notna(stoch_d.iloc[-1]) else None,
     }
 
 
