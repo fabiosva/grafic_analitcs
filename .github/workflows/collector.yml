@@ -11,6 +11,9 @@ on:
       - "dashboard/analytics.py"
       - "dashboard/app.py"
 
+permissions:
+  contents: write
+
 jobs:
   coletar:
     runs-on: ubuntu-latest
